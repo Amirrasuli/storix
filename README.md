@@ -1,18 +1,20 @@
 # Storix — Inventory Management System
 
-A modern, frontend-focused inventory management web application built with Next.js and TypeScript.
+A modern, frontend-only inventory management web application built with Next.js and TypeScript.
 
-Storix helps businesses manage products, categories, suppliers, and stock movements. It also provides sales analytics through a clear and organized dashboard.
+Storix combines inventory management with sales analytics in a simple and organized interface.
+
+It helps users manage products, categories, suppliers, stock levels, and inventory transactions. It also provides dashboards and reports to monitor inventory and sales performance.
 
 ## Overview
 
 Storix is a general-purpose inventory management application.
 
-It combines inventory management with sales analytics in a single interface.
+The project focuses on UI/UX design and frontend development. It does not include a backend or real business integrations.
 
-The project focuses on a **Single Warehouse / Single User** experience.
+The MVP provides a **Single Warehouse / Single User** experience.
 
-The MVP uses LocalStorage for data persistence and mock data for sales analytics. It does not require a real backend.
+Inventory data is stored in LocalStorage. Sales analytics use mock data.
 
 ## Goals
 
@@ -24,7 +26,7 @@ The MVP uses LocalStorage for data persistence and mock data for sales analytics
 - View inventory statistics.
 - Display sales analytics.
 - Compare product performance.
-- Keep business data organized and accessible.
+- Provide a consistent and responsive user interface.
 
 ## MVP Features
 
@@ -36,8 +38,8 @@ The MVP uses LocalStorage for data persistence and mock data for sales analytics
 | Suppliers | Manage supplier information |
 | Stock Management | Record stock IN and OUT operations |
 | Transactions | View inventory movement history |
-| Sales Analytics | Display sales statistics and product performance using mock data |
-| Settings | Manage basic application settings |
+| Sales Analytics | Display simulated sales statistics and product performance |
+| Settings | Manage basic application preferences |
 
 ## Tech Stack
 
@@ -50,76 +52,65 @@ The MVP uses LocalStorage for data persistence and mock data for sales analytics
 | Zod | Schema validation |
 | Zustand | Client-side state management |
 | Recharts | Data visualization |
-| LocalStorage | Initial data persistence |
+| LocalStorage | Client-side data persistence |
+
+The technology stack is subject to the decisions made during the Frontend Architecture phase.
 
 ## Project Scope
 
-### MVP
+### Included in MVP
 
 - General-purpose inventory management
 - Single warehouse
 - Single user
-- Product CRUD operations
+- Product management
 - Category management
 - Supplier management
 - Stock IN / OUT operations
-- Transaction history
+- Inventory transaction history
 - Low-stock identification
 - Inventory dashboard
 - Sales analytics with mock data
 - Responsive user interface
-- Local data persistence
+- Client-side data persistence
 
-### Out of Scope
+### Excluded from MVP
 
-- Multi-warehouse management
+- Backend development
+- Database integration
 - Authentication
-- User management
+- Multiple user accounts
 - Role-based access control
-- Real backend integration
-- Barcode scanning
-- Purchase orders
-- Customer management
-- Order management
-- Invoice generation
-- Payment management
-- Real sales processing
-- Advanced analytics
-- Excel and PDF exports
-
-### Future Improvements
-
-Features outside the MVP may be considered for future releases.
-
-- Multi-warehouse support
-- Authentication and user management
-- Role-based access control
-- Backend integration
+- Multi-warehouse management
 - Barcode scanning
 - Purchase order management
-- Customer and sales management
+- Customer management
+- Sales order management
+- Invoice generation
+- Payment processing
+- Real sales transactions
 - Advanced analytics
 - Excel and PDF exports
 
 ## Business Rules
 
 - Every product must have a unique SKU.
-- Product stock cannot be negative.
-- Stock IN increases available quantity.
-- Stock OUT decreases available quantity.
+- Product stock must never be negative.
+- Stock IN increases the available quantity.
+- Stock OUT decreases the available quantity.
 - Every stock movement must create a transaction record.
-- Low-stock products must be identified.
-- Product deletion must not remove its historical transaction records.
+- Products at or below their minimum stock level must be identified as low-stock products.
+- Deleting a product must not remove its historical transaction records.
 - Stock OUT operations must not exceed available stock.
 - Transaction quantities must be positive.
-- Sales analytics must use mock data in the MVP.
+- Sales analytics must use mock data.
 
 ## Development Roadmap
 
 | Phase | Title | Status |
 |---|---|---|
 | Phase 0 | Product Discovery | Completed |
-| Phase 1 | Product Backlog | In Progress |
+| Phase 1 | Feature Planning | In Progress |
 | Phase 2 | UI/UX Design | Pending |
 | Phase 3 | Data Modeling | Pending |
 | Phase 4 | Frontend Architecture | Pending |
@@ -131,13 +122,9 @@ Features outside the MVP may be considered for future releases.
 
 ## Documentation
 
-Project documentation is available in the `docs` directory.
-
 - [Product Requirements Document](docs/PRD.md)
-- [Product Backlog](docs/PRODUCT-BACKLOG.md) — Coming soon
-- [UI/UX Design](docs/UI-UX-DESIGN.md) — Coming soon
-- [Data Model](docs/DATA-MODEL.md) — Coming soon
-- [Frontend Architecture](docs/FRONTEND-ARCHITECTURE.md) — Coming soon
+
+Additional project documents will be added as their respective phases are completed.
 
 ## Getting Started
 
@@ -178,10 +165,12 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 **Status:** Planning
 
-Phase 0 (Product Discovery) is complete.
+Phase 0 — Product Discovery is complete.
 
-The project is currently entering Phase 1 (Product Backlog). Development will start after product requirements, UI/UX design, data modeling, and frontend architecture are defined.
+Phase 1 — Feature Planning is in progress.
+
+Frontend development will begin after the planning, design, data modeling, and architecture phases are complete.
 
 ## License
 
-This project is currently intended for educational and portfolio purposes.
+This project is intended for educational and portfolio purposes.
