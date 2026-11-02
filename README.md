@@ -1,37 +1,42 @@
 # Storix — Inventory Management System
 
-A modern inventory management web application built with Next.js and TypeScript.
+A modern, frontend-focused inventory management web application built with Next.js and TypeScript.
 
-Storix helps users manage products, categories, suppliers, and stock movements through a simple and organized dashboard.
+Storix helps businesses manage products, categories, suppliers, and stock movements. It also provides sales analytics through a clear and organized dashboard.
 
 ## Overview
 
-Storix is a frontend-focused inventory management application.
+Storix is a general-purpose inventory management application.
 
-The main goal is to provide a clear and reliable way to manage warehouse inventory, track stock movements, and monitor product availability.
+It combines inventory management with sales analytics in a single interface.
 
-The first release focuses on a **Single Warehouse / Single User** experience.
+The project focuses on a **Single Warehouse / Single User** experience.
+
+The MVP uses LocalStorage for data persistence and mock data for sales analytics. It does not require a real backend.
 
 ## Goals
 
 - Manage products and categories.
-- Manage suppliers.
+- Manage supplier information.
 - Track stock movements.
 - Monitor product availability.
 - Identify low-stock products.
 - View inventory statistics.
-- Keep inventory data organized and accessible.
+- Display sales analytics.
+- Compare product performance.
+- Keep business data organized and accessible.
 
 ## MVP Features
 
 | Feature | Description |
 |---|---|
-| Dashboard | Overview of inventory statistics |
+| Dashboard | Overview of inventory and sales statistics |
 | Products | Create, view, update, and delete products |
 | Categories | Manage product categories |
-| Suppliers | Manage suppliers |
-| Stock Management | Record stock IN and OUT |
+| Suppliers | Manage supplier information |
+| Stock Management | Record stock IN and OUT operations |
 | Transactions | View inventory movement history |
+| Sales Analytics | Display sales statistics and product performance using mock data |
 | Settings | Manage basic application settings |
 
 ## Tech Stack
@@ -43,48 +48,58 @@ The first release focuses on a **Single Warehouse / Single User** experience.
 | Tailwind CSS | Styling |
 | React Hook Form | Form management |
 | Zod | Schema validation |
-| Recharts | Data visualization |
 | Zustand | Client-side state management |
+| Recharts | Data visualization |
 | LocalStorage | Initial data persistence |
 
 ## Project Scope
 
 ### MVP
 
+- General-purpose inventory management
 - Single warehouse
 - Single user
-- Local data persistence
 - Product CRUD operations
 - Category management
 - Supplier management
 - Stock IN / OUT operations
 - Transaction history
-- Basic analytics
+- Low-stock identification
+- Inventory dashboard
+- Sales analytics with mock data
+- Responsive user interface
+- Local data persistence
 
-### Future Improvements
+### Out of Scope
 
 - Multi-warehouse management
 - Authentication
+- User management
 - Role-based access control
-- Backend integration
+- Real backend integration
 - Barcode scanning
 - Purchase orders
-- Sales management
+- Customer management
+- Order management
+- Invoice generation
+- Payment management
+- Real sales processing
 - Advanced analytics
 - Excel and PDF exports
 
-## Development Roadmap
+### Future Improvements
 
-- [ ] Phase 0 — Product Discovery
-- [ ] Phase 1 — Product Backlog
-- [ ] Phase 2 — UI/UX Design
-- [ ] Phase 3 — Data Modeling
-- [ ] Phase 4 — Frontend Architecture
-- [ ] Phase 5 — Project Setup
-- [ ] Phase 6 — Core Features
-- [ ] Phase 7 — Dashboard & Analytics
-- [ ] Phase 8 — Testing & Optimization
-- [ ] Phase 9 — Release
+Features outside the MVP may be considered for future releases.
+
+- Multi-warehouse support
+- Authentication and user management
+- Role-based access control
+- Backend integration
+- Barcode scanning
+- Purchase order management
+- Customer and sales management
+- Advanced analytics
+- Excel and PDF exports
 
 ## Business Rules
 
@@ -95,6 +110,34 @@ The first release focuses on a **Single Warehouse / Single User** experience.
 - Every stock movement must create a transaction record.
 - Low-stock products must be identified.
 - Product deletion must not remove its historical transaction records.
+- Stock OUT operations must not exceed available stock.
+- Transaction quantities must be positive.
+- Sales analytics must use mock data in the MVP.
+
+## Development Roadmap
+
+| Phase | Title | Status |
+|---|---|---|
+| Phase 0 | Product Discovery | Completed |
+| Phase 1 | Product Backlog | In Progress |
+| Phase 2 | UI/UX Design | Pending |
+| Phase 3 | Data Modeling | Pending |
+| Phase 4 | Frontend Architecture | Pending |
+| Phase 5 | Project Setup | Pending |
+| Phase 6 | Core Features | Pending |
+| Phase 7 | Dashboard & Analytics | Pending |
+| Phase 8 | Testing & Optimization | Pending |
+| Phase 9 | Release | Pending |
+
+## Documentation
+
+Project documentation is available in the `docs` directory.
+
+- [Product Requirements Document](docs/PRD.md)
+- [Product Backlog](docs/PRODUCT-BACKLOG.md) — Coming soon
+- [UI/UX Design](docs/UI-UX-DESIGN.md) — Coming soon
+- [Data Model](docs/DATA-MODEL.md) — Coming soon
+- [Frontend Architecture](docs/FRONTEND-ARCHITECTURE.md) — Coming soon
 
 ## Getting Started
 
@@ -135,8 +178,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 **Status:** Planning
 
-Storix is currently in the product planning phase. Development will start after the requirements, backlog, and frontend architecture are defined.
+Phase 0 (Product Discovery) is complete.
+
+The project is currently entering Phase 1 (Product Backlog). Development will start after product requirements, UI/UX design, data modeling, and frontend architecture are defined.
 
 ## License
 
-This project is currently for educational and portfolio purposes.
+This project is currently intended for educational and portfolio purposes.
