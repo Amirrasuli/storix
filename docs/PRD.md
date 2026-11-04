@@ -1,20 +1,6 @@
 # Storix
 ## Product Requirements Document (PRD)
 
-| Property | Value |
-|---|---|
-| Product Name | Storix |
-| Document Type | Product Requirements Document |
-| Document Version | 2.0 |
-| Status | Approved |
-| Product Type | Web Application |
-| Product Scope | MVP |
-| Development Focus | UI/UX and Frontend Development |
-| Target Platform | Web |
-| Last Updated | 2026-11-02 |
-
----
-
 # 1. Product Overview
 
 ## 1.1. Product Description
