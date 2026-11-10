@@ -2,872 +2,1090 @@
 
 **Document:** UI/UX Specification  
 **Version:** 1.2  
-**Status:** Draft for Documentation Review  
+**Status:** Draft for cross-document review — not approved for implementation  
 **Last Updated:** 2026-11-11  
 **Primary Reference:** [`PRD.md`](./PRD.md)  
 **Business Rules:** [`BUSINESS_RULES_AND_DATA_MODEL.md`](./BUSINESS_RULES_AND_DATA_MODEL.md)
 
 ---
 
-## 1. Purpose and Authority
+## 1. Introduction
 
-This document defines the interface structure, page content, forms, interactions, feedback, and responsive behavior for the Storix MVP.
+### 1.1. Purpose
 
-The PRD defines what the product must do. The Business Rules & Data Model document defines the rules and calculations. This document defines how the user sees and uses those capabilities.
+This document defines the user interface and user experience requirements for the Storix MVP.
 
-If a conflict exists:
+It describes:
 
-1. PRD controls the MVP scope.
-2. Business Rules & Data Model controls calculations, validation, and data relationships.
-3. This UI/UX Specification controls layout, navigation, page structure, and interaction details.
+- Application navigation and page structure.
+- The content and behavior of each MVP page.
+- Product, category, supplier, purchase invoice, and stock-removal forms.
+- Tables, filters, reusable interface components, and page states.
+- Responsive behavior and accessibility requirements.
+- Data presentation rules that follow the PRD and Business Rules document.
 
-Do not add a feature to the UI unless it exists in the PRD.
+This document does not define the frontend folder structure, state management library, final component architecture, backend, or server database.
 
-## 2. Product Experience
+### 1.2. Product Overview
 
-Storix is a general-purpose inventory management interface with read-only sales analytics. The MVP focuses on:
+Storix is a general-purpose inventory management application with sales analytics.
 
-1. Product, category, and supplier management.
-2. Stock tracking with whole countable product units.
-3. Supplier purchase invoices as the Stock IN workflow.
-4. Supplier-specific purchase-price history and current product selling price.
-5. Inventory valuation using Moving Weighted Average Cost.
-6. Read-only sales analytics using clearly labelled mock data.
+The MVP has two separate data areas:
 
-The MVP is frontend-only, single-user, and single-warehouse. Editable data is stored in LocalStorage. The UI must not imply server synchronization, live external prices, or real sales processing.
+1. **Inventory management:** Interactive Products, Categories, Suppliers, Purchase Invoices, Stock OUT operations, and inventory transaction history.
+2. **Sales Analytics:** Read-only presentation of simulated sales information.
 
-## 3. MVP Scope
+The MVP is frontend-focused, single-user, and single-warehouse. It has no backend, server database, authentication, or external business integrations. Editable inventory data is stored in browser LocalStorage. Sales Analytics uses static mock data.
 
-### 3.1. Included Modules
+### 1.3. Design Goals
 
-| Module | Purpose | Data Source |
+The interface must:
+
+- Make current inventory status easy to understand.
+- Make incoming stock traceable to a supplier invoice.
+- Show the latest purchase price separately for each linked supplier.
+- Show the current selling price separately from historical purchase prices.
+- Make product and stock operations clear and efficient.
+- Keep inventory transactions traceable.
+- Present sales information without implying that Storix processes real sales.
+- Keep sales mock data separate from editable inventory records.
+- Use consistent page layouts and interaction patterns.
+- Give clear feedback after user actions.
+- Support desktop, tablet, and mobile screens.
+
+### 1.4. Document Authority
+
+The PRD defines product scope and functional requirements. Business Rules defines domain rules, data relationships, validation, and calculations. This document defines the user-facing presentation and interaction behavior.
+
+A UI decision must not change a business rule. If the documents conflict, record the conflict and resolve it across the documents before implementation. Do not use this document to approve an open product-owner decision.
+
+## 2. MVP Scope
+
+### 2.1. Included Modules
+
+| Module | Purpose | Data source |
 |---|---|---|
-| Dashboard | Current inventory summary and sample sales indicators | Local inventory data + sales mock data |
-| Sales Analytics | Read-only sample sales reports | Static mock data |
-| Products | Product catalog, current stock, pricing, category and supplier links | LocalStorage |
-| Categories | Product grouping | LocalStorage |
-| Suppliers | Supplier contact details and related products | LocalStorage |
-| Purchase Invoices | Record supplier invoices and stock receipts | LocalStorage |
-| Stock Operations | Record Stock OUT | LocalStorage |
-| Transactions | Review immutable inventory history | LocalStorage |
-| Settings | Theme and table density | LocalStorage |
+| Dashboard | Summary of inventory status and selected sales indicators | Local inventory data + sales mock data |
+| Sales Analytics | Read-only sales quantity, revenue, charts, and product comparisons | Static sales mock data |
+| Products | Manage product catalog, package description, selling price, and relationships | LocalStorage |
+| Categories | Manage product categories | LocalStorage |
+| Suppliers | Manage supplier records and related products | LocalStorage |
+| Purchase Invoices | Record supplier documents and receive stock | LocalStorage |
+| Stock OUT | Record non-sale stock removal | LocalStorage |
+| Inventory Transactions | Review stock movement history | LocalStorage |
+| Settings | Manage basic display preferences | LocalStorage |
 
-### 3.2. Excluded UI
+There is no standalone manual Stock IN form. The Purchase Invoice flow is the Stock IN flow.
 
-Do not add navigation, forms, buttons, or placeholder pages for:
+### 2.2. Product Constraints
 
-- Sales Orders or Sales Order Details.
-- Customer Management.
-- Real sales transactions.
-- Sales invoices, receipts, or payment processing.
-- Purchase orders, supplier balances, or payment status.
-- Shipment management or warehouse transfers.
-- Multiple warehouses, user accounts, or role management.
-- Barcode scanning or live online purchase-price updates.
-- Tax accounting, invoice-wide charges, or financial accounting.
-
-Supplier purchase invoices are included only for incoming stock and purchase-price history. They are not sales invoices.
-
-## 4. User Profiles and Main Tasks
-
-The following profiles are design references, not application roles.
-
-| Profile | Main task |
+| Constraint | UI/UX implication |
 |---|---|
-| Business Owner | Review stock position, estimated inventory value, and sample sales indicators. |
-| Inventory Operator | Maintain products and record purchase invoices and Stock OUT movements. |
-| Sales Viewer | Review sample sales quantity, revenue, and product performance. |
+| One warehouse | Do not show warehouse selection or multi-warehouse stock views. |
+| One local user | Do not show sign-in, registration, user roles, permissions, or user administration. |
+| No backend | Do not present server integrations or server-dependent workflows as MVP features. |
+| LocalStorage | Explain that data stays in the current browser profile and does not sync between devices. |
+| Sales mock data | Clearly label Sales Analytics as sample or simulated data. |
+| One stock unit | Display quantities as `عدد` or with the product package description. Do not show unit conversion. |
+| Currency | Display all money as تومان. Do not show a currency selector. |
+| General-purpose product | Do not make industry-specific workflows mandatory. |
+| Purchase invoice | Treat invoice posting as an inventory receipt. Do not imply payment, accounting, or purchase-order management. |
 
-The user must be able to:
+### 2.3. Excluded Pages and Actions
 
-1. Review current stock and sales indicators on the Dashboard.
-2. Create and maintain products, categories, and suppliers.
-3. Assign multiple categories and suppliers to one product.
-4. Record initial stock with acquisition cost.
-5. Record supplier purchase invoices and incoming stock.
-6. Review the latest purchase price from each supplier and its date.
-7. Update the current selling price.
-8. Record Stock OUT with a reason.
-9. Review stock movement history.
-10. Review sample sales analytics for a date range.
+Do not show these as implemented MVP features:
 
-## 5. Information Architecture
+- Sales order creation or management.
+- Customer management or customer details.
+- Real sales transactions.
+- Sales invoice creation or payment processing.
+- Purchase order management.
+- Supplier balances or payments.
+- Shipment management.
+- Invoice-level tax, discount, shipping, or other charge allocation until D-05 is approved.
+- Posted Purchase Invoice edit, delete, void, or reversal actions until D-07 is approved.
+- General inventory transaction edit, delete, or reversal actions until D-08 is approved.
+- Authentication, user profiles, and role management.
+- Multi-warehouse workflows.
+- Barcode scanning.
+- Advanced analytics and report exports.
 
-### 5.1. Primary Navigation
+## 3. Users and Main Tasks
+
+### 3.1. Design Personas
+
+These personas are design references, not account types or permission levels.
+
+| Persona | Main task |
+|---|---|
+| Business Owner | Review inventory status and sales indicators. |
+| Inventory Operator | Manage products, suppliers, purchase invoices, and Stock OUT operations. |
+| Sales Viewer | Review simulated sales quantities, revenue, and product performance. |
+
+All features are available in one local user context.
+
+### 3.2. Main User Tasks
+
+A user must be able to:
+
+1. Review inventory and sales summaries on the Dashboard.
+2. Review sales mock data for a selected date range.
+3. Create and maintain products, categories, and suppliers.
+4. Assign multiple categories and suppliers to a product.
+5. Record opening stock during product creation, subject to the approved opening-cost rule.
+6. Record received stock by posting a Purchase Invoice.
+7. Record Stock OUT with an approved reason.
+8. Review current stock levels and low-stock products.
+9. Review supplier-specific latest purchase prices.
+10. Find and review inventory transactions and posted purchase invoices.
+11. Change supported application display preferences.
+
+## 4. Information Architecture and Navigation
+
+### 4.1. Primary Navigation
 
 Use a persistent sidebar on desktop. Group the MVP destinations as follows:
 
-| Group | Navigation item | Route |
+| Group | Navigation item | Destination |
 |---|---|---|
 | Overview | Dashboard | `/` |
 | Analytics | Sales Analytics | `/sales-analytics` |
-| Catalog | Products | `/products` |
-| Catalog | Categories | `/categories` |
-| Catalog | Suppliers | `/suppliers` |
-| Purchasing | Purchase Invoices | `/purchase-invoices` |
-| Inventory | Stock Operations | `/stock` |
+| Inventory | Products | `/products` |
+| Inventory | Categories | `/categories` |
+| Inventory | Suppliers | `/suppliers` |
+| Inventory | Purchase Invoices | `/purchase-invoices` |
+| Inventory | Stock OUT | `/stock-out` |
 | Inventory | Transactions | `/transactions` |
 | General | Settings | `/settings` |
 
-Routes are proposed UI routes. Final route implementation belongs to Frontend Architecture.
+The route names are proposed UI routes. Frontend Architecture may adjust route structure, but page responsibilities must remain the same.
 
-### 5.2. Navigation Rules
+### 4.2. Navigation Rules
 
-- Highlight the active destination.
-- Use clear labels and consistent icons.
-- Show all MVP destinations in the desktop sidebar.
-- Use a collapsible sidebar or navigation drawer on small screens.
-- Do not show a user profile menu, customer menu, or sales order menu.
-- Show breadcrumbs on nested pages when they improve orientation.
+- Make the active navigation item visually clear.
+- Use plain-language labels.
+- Provide access to all MVP modules.
+- Use breadcrumbs where they help show page hierarchy.
+- Do not show links to excluded modules.
+- On mobile, use a collapsible drawer or another compact navigation pattern.
+- Do not include a user profile menu.
+- Do not create a separate Stock IN destination. The Purchase Invoice page is the entry point for incoming stock.
 
-### 5.3. Global Application Shell
+## 5. Dashboard
 
-The application shell contains:
+### 5.1. Purpose
 
-- Sidebar navigation.
-- Top bar with page-level utility controls only.
-- Main content area.
-- Page title and optional supporting description.
-- Breadcrumbs on nested pages where useful.
+The Dashboard gives the user a short overview of current inventory and selected sales information.
 
-Do not show fake notifications, online status, user identity, or server-sync indicators.
+It must not imply that sales values come from real transactions entered into Storix.
 
-## 6. Dashboard
+### 5.2. Inventory Summary
+
+Display these inventory metrics:
+
+- Total Products.
+- Total Units in Stock.
+- Low-Stock Products.
+- Estimated Inventory Value only after D-01, D-04, and D-05 are approved.
+
+For Estimated Inventory Value, use a clear unavailable or hidden state while its calculation is blocked. Never display zero when the cost is unknown.
+
+### 5.3. Sales Summary and Trend
+
+Display sales mock data for the selected date range.
+
+Requirements:
+
+- Show sales information for the active date range.
+- Provide readable axis labels and tooltips.
+- Identify the information as sample or simulated data.
+- Keep sales values separate from inventory records and transactions.
+- Handle an empty or unavailable mock dataset.
+- Do not calculate historical revenue from the current Product selling price.
+
+### 5.4. Recent Inventory Transactions
+
+Show the latest inventory transactions, including:
+
+- Transaction date and time.
+- Product name or historical product label.
+- Transaction type.
+- Quantity.
+- A link to transaction details.
+
+Do not show sales orders or recent orders.
+
+### 5.5. Best-Selling Products
+
+Display best-selling products using sales mock data. The default ranking is by revenue, descending. Clearly label the metric and the mock-data source.
+
+### 5.6. Dashboard Interactions
+
+- Clicking a Product metric or list item may open the Product list with a relevant filter.
+- Clicking a transaction opens its details.
+- Changing the sales date range updates all date-dependent sales widgets.
+- Do not make inventory cards change the sales mock data.
+
+## 6. Sales Analytics
 
 ### 6.1. Purpose
 
-The Dashboard gives a combined view of current inventory and selected sample sales indicators. Inventory values come from editable LocalStorage data. Sales values come from the separate mock dataset.
+Sales Analytics presents read-only sample sales information. It does not create sales records or process sales.
 
-### 6.2. Inventory KPI Cards
+### 6.2. Sales Metrics
 
-| KPI | Definition | PRD |
-|---|---|---|
-| Total Products | Count of active products. | FR-01 |
-| Total Units in Stock | Sum of countable stock quantities across active products. | FR-02 |
-| Low-Stock Products | Count where current quantity is less than or equal to the product minimum threshold. Includes zero-stock products. | FR-03 |
-| Estimated Inventory Value | Sum of current inventory value using Moving Weighted Average Cost. | FR-04 |
+Display:
 
-All products use the same count unit (`عدد`). Package descriptions may add context, but do not change the KPI calculation.
+- Sales quantity for the selected date range.
+- Sales revenue for the selected date range.
+- Product performance comparisons.
+- Gross Profit and Gross Margin only after the product owner confirms their visible inclusion in the MVP.
 
-### 6.3. Stock Status
+Use the definitions and formulas in Business Rules. Do not use current Product selling price or Stock OUT transactions to build historical sales totals.
 
-Use these labels:
+### 6.3. Date-Range Selection
 
-- `Out of Stock`: current quantity is zero.
-- `Low Stock`: current quantity is positive and less than or equal to minimum stock.
-- `In Stock`: current quantity is greater than minimum stock.
-
-The Low-Stock Products KPI includes products with zero quantity, even though their table label is Out of Stock.
-
-### 6.4. Sales Trend
-
-Display a revenue trend from SalesMockEntry data. Include:
-
-- Selected date range.
-- Clear revenue label and IRT currency.
-- Readable axis labels and exact-value tooltips.
-- A visible `Sample Data` label.
-- Empty state when the selected range has no entries.
-
-Do not imply that the sample revenue came from the current inventory transactions.
-
-### 6.5. Best-Selling Products
-
-Display a ranked list or table using mock data. Suggested columns:
-
-- Product name.
-- SKU or stable display key, when available.
-- Package description, when available.
-- Quantity sold.
-- Revenue.
-
-Default ranking is revenue descending. Clearly identify the data as sample data. Link to Product Details only when an explicit valid product ID exists.
-
-### 6.6. Recent Inventory Transactions
-
-Display recent ledger records with:
-
-- Product name snapshot.
-- Transaction type.
-- Quantity and package label.
-- Date and time.
-- Reason, when relevant.
-- Related purchase invoice, when relevant.
-
-Selecting a row opens Transaction Details. Do not present Stock OUT as a confirmed sale.
-
-### 6.7. Dashboard Interactions
-
-- Sales date-range changes update all sales widgets.
-- Inventory KPI cards may link to relevant inventory pages.
-- Recent transaction rows open Transaction Details.
-- Best-selling product rows open Product Details only when a stable product link exists.
-- No order, customer, or payment pages may be opened from Dashboard.
-
-## 7. Sales Analytics
-
-### 7.1. Purpose
-
-Sales Analytics is a read-only reporting page for simulated sales data. It does not create or manage real sales.
-
-### 7.2. Page Layout
-
-The page contains:
-
-1. Page title and visible `Sample Data` notice.
-2. Date-range selector.
-3. Sales quantity metric.
-4. Sales revenue metric.
-5. Gross profit and gross margin metrics.
-6. Sales trend chart.
-7. Best-selling products.
-8. Product performance comparison.
-
-### 7.3. Date Range
-
-Provide these quick ranges:
+Provide quick ranges:
 
 - Last 7 days.
 - Last 30 days.
 - Last 90 days.
 - Last 12 months.
-- Custom range, when supported by the mock data.
 
-Custom start and end dates are inclusive. Start date cannot be after end date. All charts and KPI cards must use the same selected date range. Date-only records use the browser's local calendar date.
+A custom date range may be provided.
 
-### 7.4. Metrics
+Date rules:
 
-Display:
+- Use browser-local calendar dates.
+- Include today in quick ranges.
+- Include both selected dates in a custom range.
+- Do not allow the start date to be after the end date.
+- Use the same range for all Sales Analytics widgets.
+- Do not include future dates in the current reporting period.
 
-- Sales quantity as a whole count of product units.
-- Sales revenue in IRT / تومان.
-- Gross profit = revenue minus cost of goods sold.
-- Gross margin = gross profit divided by revenue, multiplied by 100.
+### 6.4. Charts and Comparisons
 
-When revenue is zero, show `—` for gross margin. Do not display orders, average order value, customers, cancellations, or payment metrics.
+- Use clear labels and tooltips.
+- Identify the compared metric, such as `Revenue (تومان)` or `Quantity (عدد)`.
+- Display product/package context for quantity comparisons.
+- Keep empty and invalid states clear.
+- Do not label mock records as confirmed orders or payments.
 
-### 7.5. Charts and Comparisons
+### 6.5. Sales Analytics Interactions
 
-- Use a revenue trend by date.
-- Allow a clear metric selection for product comparison, such as quantity or revenue.
-- Include exact-value tooltips.
-- Include a text summary or accessible data alternative.
-- Show a useful empty state for a date range with no records.
-- Do not use inventory transactions as sales data.
+- Date-range changes update all date-dependent metrics and charts.
+- Tooltips show the value represented by a chart element.
+- Comparison controls state which metric is selected.
+- Empty data or invalid ranges show a clear message.
+- All Sales Analytics interactions are read-only.
 
-### 7.6. Interaction Rules
+## 7. Products
 
-All Sales Analytics controls are read-only filters. Changing a date range must not write to LocalStorage or create an inventory transaction.
+### 7.1. Purpose
 
-## 8. Products
+The Products module provides access to the product catalog, current stock, selling price, category assignments, supplier links, and supplier-specific purchase-price history.
 
-### 8.1. Product List
+### 7.2. Product List
 
-The page must contain:
+The page must provide:
 
-- Page title and supporting text.
-- Create Product action.
-- Search input for name and SKU.
-- Category filter supporting multiple selected categories.
-- Stock status filter.
-- Sort controls.
-- Paginated product table.
-- Empty state with Create Product action.
+- Page title and short description.
+- Primary action to create a Product.
+- Search by product name and SKU.
+- Category and stock-status filters.
+- Product table.
+- Sorting controls.
+- Pagination.
+- Empty state when no products exist.
 
-### 8.2. Product Table
+### 7.3. Product Table
 
-Recommended columns:
+Use these columns where the viewport allows:
 
-| Column | Display |
+| Column | Description |
 |---|---|
-| Product | Name and package description |
-| SKU | Unique identifier |
-| Categories | One or more category labels |
-| Stock | Whole count displayed with `عدد`; package description shown separately |
-| Minimum | Threshold in countable units |
-| Status | In Stock, Low Stock, or Out of Stock |
-| Selling Price | Current price in IRT; show Not Set or Free distinctly |
-| Actions | View, Edit, Archive |
+| Product | Product name and optional package description. |
+| SKU | Unique product identifier. |
+| Category | Assigned category labels; use a compact count or overflow treatment when there are many. |
+| Stock | Current whole-number quantity with `عدد` or package context. |
+| Minimum Stock | Configured low-stock threshold. |
+| Status | In Stock, Low Stock, or Out of Stock. |
+| Selling Price | Current selling price in تومان, or `Not set`. |
+| Actions | View, edit, and delete. |
 
-Latest supplier purchase prices are better shown in Product Details because a product may have several suppliers and several purchase histories.
+Do not show one ambiguous purchase-price column on the Product table when a Product can have several Suppliers. Show supplier-specific prices in Product Details.
 
-### 8.3. Product Create/Edit Form
+### 7.4. Search, Filter, Sort, and Pagination
 
-The form contains:
+The Product list must support:
 
-**Product details**
-- Product name — required.
-- SKU — required and unique.
-- Description — optional.
-- Package description — optional, for example `5 kg bag` or `12-unit box`.
+- Search by product name.
+- Search by SKU.
+- Filter by one or more categories.
+- Filter by stock status.
+- Sort by product name, stock quantity, and selling price when the value is set.
+- Pagination for long lists.
+- Clearing active filters.
 
-**Classification**
-- Categories — multi-select; zero or more categories.
-- Suppliers — multi-select; zero or more suppliers.
+### 7.5. Create and Edit Product
 
-**Pricing and stock rules**
-- Current selling price — optional integer toman value.
-- Empty means Not Set; zero means Free.
-- Minimum stock level — whole number; default zero.
-- Opening quantity — whole number; default zero, during creation only.
-- Opening unit acquisition cost — required if opening quantity is positive.
-- Opening supplier — optional and limited to suppliers linked to the product.
+The form must include:
 
-Show the fixed count unit `عدد`. For example, show `25 عدد` and display `5 kg bag` as supporting package information. Do not offer a kg/L/piece unit selector or fractional quantity input.
+| Field | Requirement |
+|---|---|
+| Product name | Required. |
+| SKU | Required and unique. |
+| Description | Optional. |
+| Package description | Optional. Describes one countable item/package. |
+| Categories | Multi-select. Zero, one, or multiple categories are allowed. |
+| Suppliers | Multi-select. Zero, one, or multiple suppliers are allowed. |
+| Selling price | Integer toman value or Not set. Zero behavior depends on D-03. |
+| Minimum stock | Non-negative whole number. Default depends on D-02. |
+| Stock unit | Fixed to `عدد`. Do not show an editable unit selector. |
+| Opening stock | Non-negative whole number. Default is zero. |
+| Opening unit cost | Show when opening stock is greater than zero, subject to D-04. |
+| Opening supplier | Optional when known; must be linked to the Product if selected. |
 
-### 8.4. Product Form Behavior
+Do not provide a direct editable current-stock field. Opening stock is a one-time initial movement.
 
-- Validate SKU uniqueness without case sensitivity.
-- Prevent negative or fractional stock values.
-- Do not default an empty selling price to zero.
-- If opening quantity is zero, hide or disable opening-cost fields and create no opening transaction.
-- If opening quantity is positive, require unit acquisition cost.
-- Save Product and Opening Stock atomically.
-- Editing a product must not change current stock or historical price records.
-- Do not allow a direct current-stock edit.
+When opening stock is greater than zero, explain that saving the Product will also create one opening-stock transaction. Apply the final cost requirement only after D-04 is approved.
 
-### 8.5. Product Details
+If saving the Product or opening transaction fails, keep the form open and do not report success.
 
-Show the following sections:
+### 7.6. Product Details
 
-**Product overview**
-- Product name, SKU, description, package description.
-- Current stock and stock status.
+Show these sections:
+
+**Product information**
+
+- Product name and SKU.
+- Description and package description, when provided.
+- Assigned categories.
+- Current selling price, or `Not set`.
+
+**Inventory status**
+
+- Current stock quantity.
 - Minimum stock threshold.
-- Current selling price, with Not Set and Free states.
+- Stock status.
+- Actions for Stock OUT and purchase invoice creation.
 
-**Classification**
-- All linked categories.
-- All linked suppliers.
+**Suppliers and purchase-price history**
 
-**Purchase price history**
-- One latest-price row or card per supplier with valid purchase history, including historical suppliers no longer linked for new purchases.
+For each linked Supplier, show:
+
 - Supplier name.
-- Latest unit purchase price.
-- Supplier invoice date.
-- Relative age, such as `3 days ago`.
-- Link to the source Purchase Invoice Details.
-- `No recorded purchase` when no valid invoice exists.
-- Ignore voided invoices when calculating latest price.
+- Supplier product code, when available.
+- Latest recorded unit purchase price, when invoice history exists.
+- Invoice date.
+- Relative age of the invoice date.
+- `No recorded purchase` when there is no invoice line for the pair.
 
-**Inventory valuation**
-- Current moving average cost per unit.
-- Estimated current inventory value.
-- Explain that this is acquisition value, not selling value.
+Do not show an unlabelled latest purchase price. A product may have several supplier prices.
 
-**History**
-- Recent inventory transactions for the product.
-- Actions to edit product or record Stock OUT.
+**Recent inventory history**
 
-### 8.6. Product Removal
+Show recent inventory transactions for this Product. Keep this history readable after Product deletion or edits.
 
-Use an Archive action, not a permanent delete, when history exists. Block archive while stock is greater than zero. Preserve invoice, sales mock, and transaction references.
+Do not include Sales Orders, customer data, or real sales history.
 
-## 9. Categories
+### 7.7. Delete Product
 
-### 9.1. Category List
+- Ask for confirmation.
+- State that the Product can be deleted only when current stock is zero.
+- Block deletion while stock is positive.
+- Explain that historical transactions and purchase invoice records remain.
+- Do not silently remove historical records.
 
-Show category name, optional description, product count, and actions. Provide search when useful, Create Category, and an empty state.
+## 8. Categories
 
-### 9.2. Create/Edit
+### 8.1. Purpose
 
-- Name is required and case-insensitively unique.
+Categories group Products for navigation and filtering.
+
+### 8.2. Category List
+
+Provide:
+
+- Page title.
+- Create Category action.
+- Category list or table.
+- Product count for each Category.
+- Edit and delete actions.
+- Empty state.
+
+### 8.3. Create and Edit Category
+
+- Category name is required.
 - Description is optional.
-- Preserve form values when validation fails.
-- Show success feedback after save.
+- Enforce uniqueness without case sensitivity after trimming.
+- Show field-level validation.
+- Keep entered values when validation fails.
 
-### 9.3. Product Assignment
+### 8.4. Delete Category
 
-- A product can have multiple categories.
-- A category can contain multiple products.
-- Product forms must support multi-select category assignment.
-- Category Details must show assigned products.
-- Adding or removing an assignment must not change stock or pricing.
+- Ask for confirmation.
+- Show the number or names of linked Products where useful.
+- Block deletion while ProductCategory links exist.
+- Ask the user to remove category assignments first.
+- Do not silently remove or reassign Products.
 
-### 9.4. Delete
+## 9. Suppliers
 
-Block category deletion while one or more ProductCategory links exist. Explain that assignments must be removed first. Never silently reassign products.
+### 9.1. Purpose
 
-## 10. Suppliers
+The Suppliers module maintains supplier contact information and shows which products can be purchased from each supplier.
 
-### 10.1. Supplier List
+### 9.2. Supplier List
 
-Show supplier name, contact person, phone, email, linked-product count, and actions where data exists. Provide search and Create Supplier.
+Provide:
 
-### 10.2. Supplier Details
+- Page title.
+- Create Supplier action.
+- Supplier list or table.
+- Search by supplier name and available contact fields.
+- Related product count.
+- Edit, view, and delete actions.
+- Empty state.
 
-Show:
-
-- Supplier contact details.
-- Linked products.
-- Latest purchase price for each linked Product, when invoice history exists.
-- Purchase invoice history.
-- Link to Purchase Invoice Details.
-
-Do not show payment status, supplier balance, purchase orders, or due dates.
-
-### 10.3. Create/Edit Supplier
-
-Name is required. Contact name, email, phone, address, and notes are optional. Validate email format only when a value is provided.
-
-### 10.4. Product Linking
-
-- A supplier can be linked to many products.
-- A product can be linked to multiple suppliers.
-- Prevent duplicate product-supplier links.
-- Allow a supplier-product link to be created from Product form or Purchase Invoice flow.
-- Do not store purchase price on the supplier-product link.
-
-### 10.5. Delete
-
-Block supplier deletion while it has ProductSupplier links or purchase invoice history. Explain the reason. Historical supplier snapshots must remain readable.
-
-## 11. Purchase Invoices
-
-### 11.1. Purpose
-
-Purchase Invoices is the only regular Stock IN workflow. It records the supplier's invoice details, quantities received, and actual unit purchase prices. Posting an invoice increases stock and creates price history.
-
-This page is not a purchase-order, payment, tax, accounts-payable, or supplier-balance module.
-
-### 11.2. Purchase Invoice List
+### 9.3. Supplier Details
 
 Show:
 
-| Column | Meaning |
+- Supplier name.
+- Contact name, email, phone, address, and notes when available.
+- Related Products.
+- Latest recorded purchase price and invoice date for each related Product, when available.
+- Link to Purchase Invoice history for this Supplier.
+
+Do not show purchase orders, balances, payments, or accounts-payable data.
+
+### 9.4. Create and Edit Supplier
+
+- Supplier name is required.
+- Other contact fields are optional.
+- Validate email format when an email is provided.
+- Store phone as text.
+- Show success and error feedback.
+
+### 9.5. Delete Supplier
+
+- Ask for confirmation.
+- Block deletion while ProductSupplier links exist.
+- Block deletion when Purchase Invoice history exists.
+- Explain that historical invoices need the Supplier record to remain readable.
+- Do not cascade-delete invoice history.
+
+## 10. Purchase Invoices and Stock IN
+
+### 10.1. Purpose
+
+The Purchase Invoices module records a supplier document and receives stock into the one Storix warehouse.
+
+This is the only Stock IN flow in the MVP. It is not a purchase order, supplier payment, accounting, or sales invoice workflow.
+
+### 10.2. Purchase Invoice List
+
+Provide:
+
+- Page title and short description.
+- Primary action: `Record Purchase Invoice`.
+- Search by supplier name or invoice number.
+- Filter by supplier and invoice date range, where practical.
+- List or table of posted invoices.
+- Empty state.
+
+Suggested columns:
+
+| Column | Description |
 |---|---|
-| Supplier | Supplier name snapshot |
-| Invoice Number | Supplier invoice number, when provided |
-| Invoice Date | Date printed on supplier invoice |
-| Recorded At | Time the invoice was posted in Storix |
-| Items | Number of product lines |
-| Items Subtotal | Sum of quantity multiplied by unit purchase price |
-| Status | Posted or Voided |
-| Actions | View details; Void only when eligible |
+| Invoice Date | Date printed on the supplier document. |
+| Invoice Number | Supplier invoice number, or `—`. |
+| Supplier | Supplier name snapshot. |
+| Items | Number of product lines. |
+| Products Subtotal | Sum of line amounts before any invoice-level adjustments. Do not label as final payable total while D-05 is open. |
+| Recorded At | Date/time when Storix posted the invoice. |
+| Action | Open read-only details. |
 
-Filters may include supplier, invoice date range, and status. Provide a New Purchase Invoice action.
-
-### 11.3. Create Purchase Invoice Form
+### 10.3. Create Purchase Invoice Form
 
 **Invoice details**
-- Supplier — required.
-- Invoice date — required.
-- Invoice number — optional.
-- Note — optional.
+
+- Supplier: required, select one Supplier.
+- Invoice date: required, valid calendar date.
+- Invoice number: optional.
+- Note: optional.
 
 **Product lines**
-- Product — required and must be linked to the selected supplier.
-- Quantity — positive whole number.
-- Unit purchase price — non-negative integer toman amount.
-- Line subtotal — read-only calculation.
-- Remove line action before posting.
+
+Each line must include:
+
+- Product selection.
+- Current stock quantity for context.
+- Quantity received as a positive whole number.
+- Unit purchase price in integer tomans.
+- Derived line amount.
+- Remove-line action before posting.
 
 Rules:
 
-- At least one line is required.
-- A product may appear once per invoice.
-- If the selected product is not linked to the supplier, offer a way to add the supplier-product link before posting.
-- Unit price must be the net merchandise price after any line-level discount and before tax.
-- Do not include invoice-wide discount, tax, shipping, freight, or other charges.
-- Label the total `Items Subtotal`, not `Invoice Total` or `Amount Due`.
-- Do not show payment status or supplier balance.
+1. At least one product line is required.
+2. Do not allow the same Product twice on one invoice.
+3. Only show Products linked to the selected Supplier.
+4. If a needed Product is not linked, provide a clear path to add the Product-Supplier link before posting. Do not silently create a relationship.
+5. Do not include invoice-level discounts, taxes, shipping, or other charges until D-05 is approved.
+6. Label the sum of line amounts as a product subtotal, not as final invoice payable amount.
+7. Show a clear summary of the stock quantities that will be received.
 
-### 11.4. Posting Confirmation
+### 10.4. Posting Confirmation
 
-Before posting, show a review summary:
+Before posting, show a confirmation summary:
 
 - Supplier.
-- Invoice date and optional invoice number.
-- Product lines, quantities, unit prices, and subtotals.
-- Items Subtotal.
-- Notice that posting updates stock and creates immutable price history.
+- Supplier invoice date and number, when available.
+- Product lines.
+- Quantity received per Product.
+- Unit purchase price and line amount.
+- Total units that will be added to stock.
 
-The user must confirm the action. After confirmation, save invoice, items, Stock IN transactions, and inventory value changes as one logical operation.
+The confirmation must explain that posting will update inventory and create transaction records. The user must confirm the action.
 
-### 11.5. Purchase Invoice Details
+### 10.5. Save and Failure Behavior
+
+On successful posting:
+
+1. Save the Purchase Invoice header.
+2. Save all invoice lines.
+3. Create exactly one Stock IN transaction for each line.
+4. Update the affected Product stock quantities.
+5. Persist all related changes as one logical operation.
+6. Show success feedback and open invoice details or return to the invoice list.
+
+During save:
+
+- Disable the submit action to prevent duplicate submission.
+- Do not report success before persistence succeeds.
+- If validation or persistence fails, keep the entered form values and show a useful error.
+- Do not leave a saved invoice without all its lines and Stock IN transactions.
+
+### 10.6. Purchase Invoice Details
 
 Show:
 
-- Supplier snapshot and current supplier link when available.
-- Invoice number and invoice date.
-- Recorded time.
-- Status.
-- Item lines with product snapshots, quantities, unit prices, and subtotals.
-- Items Subtotal.
-- Related Stock IN transactions.
-- Void reason and reversal transactions when voided.
+- Supplier name snapshot.
+- Invoice date.
+- Invoice number, when available.
+- Recorded date and time.
+- Note, when available.
+- Product lines with product-name snapshot, SKU snapshot, package snapshot, quantity, unit purchase price, and line amount.
+- Total units received.
+- Product subtotal before any invoice-level adjustments.
 
-The page must not show tax totals, shipping fees, payments, amount due, or supplier balances.
+Posted invoice details are read-only in this draft. Do not show Edit, Delete, Void, or Reverse actions until D-07 is approved.
 
-### 11.6. Invoice Immutability and Void Action
+## 11. Stock OUT
 
-- Posted invoice fields and lines are read-only.
-- Do not show Edit or Delete actions for a posted invoice.
-- Show Void only when every source Stock IN transaction is the latest movement for its product.
-- If void is blocked, explain that a later stock movement exists for one or more products.
-- Void requires confirmation and a reason.
-- Voiding creates one `PURCHASE_VOID` transaction per line and preserves original records.
-- After void, show status `Voided` and retain the full history.
-- Exclude voided invoices from latest purchase price projections.
+### 11.1. Purpose
 
-## 12. Stock Operations
+Stock OUT records the removal of units from available inventory for a non-sale reason.
+
+It does not record a sale and does not update Sales Analytics.
+
+### 11.2. Stock OUT Form
+
+The form must include:
+
+- Product selection.
+- Current available quantity.
+- Quantity to remove.
+- Reason, using the approved D-06 values.
+- Optional note.
+
+Proposed reason values are:
+
+| Value | Display label |
+|---|---|
+| `DAMAGE` | Damaged |
+| `INTERNAL_USE` | Internal use |
+| `ADJUSTMENT` | Stock adjustment |
+| `OTHER` | Other |
+
+Do not include `SALE`.
+
+The list above remains proposed until D-06 is approved. The reason field and its final labels must not be treated as final before approval.
+
+### 11.3. Validation
+
+- Product is required.
+- Quantity must be a positive whole number.
+- Quantity must not exceed available stock.
+- Resulting stock must not be negative.
+- Reason is required after D-06 is approved.
+- Note is optional.
+
+### 11.4. Successful Submission
+
+1. Decrease the Product stock quantity.
+2. Create exactly one Stock OUT transaction.
+3. Keep the transaction immutable.
+4. Show success feedback.
+5. Update visible stock and transaction lists.
+6. Do not change Sales Analytics data.
+
+On failure, keep the form open and explain the problem. Do not change stock or create a transaction.
+
+## 12. Inventory Transactions
 
 ### 12.1. Purpose
 
-The Stock Operations page records Stock OUT only. Stock IN is completed through Purchase Invoices.
+The Transactions module provides a traceable history of inventory movements. It contains Opening Stock, Stock IN from Purchase Invoice lines, and Stock OUT records.
 
-### 12.2. Stock OUT Form
+It does not contain sales orders or real sales transactions.
 
-Fields:
+### 12.2. Transaction List
 
-- Product — active product only.
-- Current stock — read-only.
-- Quantity — positive whole number.
-- Reason — Damage, Internal Use, Adjustment, or Other.
-- Note — required for Adjustment and Other; optional for other reasons.
+Provide:
 
-The form must show the projected quantity after the operation. It must reject a quantity greater than current stock.
-
-### 12.3. Stock OUT Confirmation and Result
-
-Before saving, show Product, current quantity, quantity to remove, resulting quantity, reason, and note. On success, create one Stock OUT transaction and update inventory value using Moving Weighted Average Cost.
-
-On failure, keep the form values, do not alter stock, and show the error.
-
-### 12.4. Stock Operation Constraints
-
-- No separate manual Stock IN form.
-- No Sale reason.
-- No positive manual adjustment.
-- No fractional quantities.
-- No negative stock.
-- Do not update Sales Analytics from Stock OUT.
-
-## 13. Inventory Transactions
-
-### 13.1. Transaction List
-
-Display transaction type, product snapshot, quantity, before/after stock, date/time, reason, and related invoice when available.
-
-Transaction types:
-
-- Opening Stock.
-- Stock IN.
-- Stock OUT.
-- Purchase Void.
-
-### 13.2. Filters
-
-Support filters by:
-
-- Product.
-- Transaction type.
-- Date range.
-- Supplier, where the transaction has a supplier snapshot.
-
-Provide search by product name or SKU snapshot where practical.
-
-### 13.3. Transaction Details
-
-Show:
-
-- Product name, SKU, and package snapshots.
-- Type and quantity.
-- Stock quantity before and after.
-- Inventory value before and after.
-- Unit purchase price or cost removed when relevant.
-- Supplier snapshot when relevant.
-- Related purchase invoice and invoice item when relevant.
-- Reversed transaction reference for Purchase Void.
-- Reason, note, and timestamp.
-
-### 13.4. History Rules
-
-Transactions are immutable. Do not show Edit or Delete actions. A correction must be represented by a supported compensating transaction. Product archive must not hide transaction history.
-
-## 14. Settings
-
-### 14.1. Supported Preferences
-
-- Theme: Light, Dark, System.
-- Table density: Comfortable, Compact.
-
-### 14.2. Fixed Settings
-
-- Currency is fixed to IRT / تومان.
-- Stock quantity unit is fixed to countable items / packages.
-- Do not add warehouse, account, role, online price provider, or synchronization settings.
-
-### 14.3. Persistence
-
-Save supported preferences in LocalStorage. Show a clear error if persistence fails. Do not show a fake server save state.
-
-## 15. Reusable UI Components
-
-### 15.1. Layout
-
-- Application shell.
-- Sidebar and mobile navigation drawer.
-- Top bar.
-- Page header and breadcrumbs.
-- Responsive content grid.
-
-### 15.2. Data Display
-
-- KPI card.
-- Status badge.
-- Currency value.
-- Quantity/package value.
-- Data table with sorting and pagination.
+- Page title and short description.
+- Transaction type filter.
+- Product filter.
+- Search where useful.
+- Transaction list or table.
+- Pagination when needed.
 - Empty state.
-- Date range selector.
-- Chart with tooltip and text alternative.
 
-### 15.3. Inventory Components
+Suggested columns:
 
-- Product selector.
-- Multi-select category selector.
-- Multi-select supplier selector.
-- Stock status indicator.
-- Stock movement summary.
-- Purchase invoice line editor.
-- Purchase price history row.
-- Invoice status indicator.
-- Transaction detail panel.
+| Column | Description |
+|---|---|
+| Date | Transaction date and time. |
+| Product | Product name snapshot. |
+| SKU | SKU snapshot. |
+| Type | Opening Stock, Stock IN, or Stock OUT. |
+| Quantity | Quantity moved, shown as a whole number. |
+| Before | Quantity before movement. |
+| After | Quantity after movement. |
+| Source | Purchase Invoice reference for Stock IN, when applicable. |
+| Reason | Approved reason for Stock OUT. |
+| Action | Open transaction details. |
 
-### 15.4. Feedback Components
+### 12.3. Filters
 
-- Confirmation dialog.
-- Field-level validation message.
-- Success notification.
-- Error notification.
-- Disabled-action explanation.
-- Loading skeleton for local page preparation when needed.
+- Filter by transaction type.
+- Filter by Product.
+- Combine filters.
+- Clear active filters.
+- A date filter is optional and must be implemented only if it can use the transaction timestamp rules consistently.
 
-## 16. Interaction and Feedback Rules
+### 12.4. Transaction Details
 
-### 16.1. Forms
+Show the available information:
 
-- Mark required fields clearly.
-- Keep labels visible; do not rely only on placeholders.
-- Show validation beside the relevant field.
-- Preserve entered values after validation errors.
-- Disable submit while a save operation is in progress.
-- Show success only after LocalStorage persistence succeeds.
+- Transaction type.
+- Product name and SKU snapshots.
+- Package description snapshot, when available.
+- Quantity.
+- Quantity before and after.
+- Date and time.
+- Supplier and Purchase Invoice reference for invoice-based Stock IN.
+- Unit purchase price when stored and applicable.
+- Stock OUT reason when applicable.
+- Note, when provided.
 
-### 16.2. Tables
+Details must remain readable after the related Product or Supplier changes or is deleted.
 
-- Use clear column headings and consistent value alignment.
-- Keep sorting state visible.
-- Show active filters and a clear-all action.
-- Provide an empty state when no rows match.
-- Keep important stock and price fields available on mobile, using a card layout when needed.
+### 12.5. Transaction History Rules
 
-### 16.3. Destructive and Irreversible Actions
+- Every stock movement must be traceable.
+- Opening stock appears as a transaction when initial quantity is positive.
+- Every Purchase Invoice line creates one Stock IN transaction.
+- Posted transactions cannot be edited or deleted.
+- Deleting a Product must not delete its historical transactions.
+- Historical records must not be presented as confirmed sales.
 
-Require confirmation before Product archive, Category deletion, Supplier deletion, and Purchase Invoice void. The confirmation must describe the effect. A Purchase Invoice void confirmation must identify affected products and state that compensating transactions will be created.
+## 13. Settings
 
-Do not provide edit/delete actions for posted purchase invoices or inventory transactions.
+### 13.1. Purpose
 
-### 16.4. Action Feedback
+Settings provides basic local display preferences only. It does not provide account settings or user management.
 
-- Successful saves show a concise confirmation.
-- Validation errors identify the field and corrective action.
-- Persistence failures do not change displayed stock state.
-- Blocked actions explain the exact rule that prevents them.
-- Do not use color as the only feedback channel.
+### 13.2. MVP Preferences
 
-## 17. Data Presentation Rules
+| Preference | Options | Default | Effect |
+|---|---|---|---|
+| Theme | Light, Dark, System | System | Visual presentation only. |
+| Table Density | Comfortable, Compact | Comfortable | Table spacing only. |
 
-### 17.1. Stock Quantities
+Currency is fixed to IRT/toman. Do not add a currency selector.
 
-All quantities are whole counts of products or packages. Display the quantity with `عدد` and show package description separately. Never convert package count to weight or volume.
+## 14. Reusable Interface Components
 
-### 17.2. Currency
+These are conceptual component responsibilities. Final component names and composition belong to Frontend Architecture.
 
-Display all money in IRT / تومان with integer values. Do not show decimal tomans or rial conversion.
+### 14.1. Layout Components
 
-### 17.3. Purchase Prices
+- `AppSidebar`
+- `Topbar`
+- `PageContainer`
+- `PageHeader`
+- `Breadcrumbs`
 
-- Show one latest price per Product-Supplier pair.
-- Show supplier name, unit price, invoice date, and relative age.
-- Derive relative age at display time.
-- Ignore voided invoices.
-- Show `No recorded purchase` when no valid invoice exists.
-- Do not show a manual reference price.
+### 14.2. Data Display Components
 
-### 17.4. Selling Price and Cost
+- `DataTable`
+- `SearchInput`
+- `FilterControl`
+- `FilterChip`
+- `Pagination`
+- `EmptyState`
+- `LoadingState`
+- `ErrorState`
 
-- Null selling price = Not Set.
-- Zero selling price = Free.
-- Moving average cost = current acquisition cost per unit.
-- Inventory value = current acquisition value of remaining stock.
-- Do not use selling price to calculate inventory value.
-- A selling-price versus latest-purchase-price comparison is indicative only, not actual profit.
+### 14.3. Dashboard and Analytics Components
 
-### 17.5. Sales Data
+- `InventorySummaryCard`
+- `SalesMetricCard`
+- `SalesTrendChart`
+- `TopProductsList`
+- `ProductPerformanceComparison`
+- `RecentTransactionsTable`
 
-Every Sales Analytics page and Dashboard sales widget must show a `Sample Data` label. Sales mock records do not update stock, and stock movements do not update sales metrics.
+Do not create `RecentOrdersTable` or order-status components for the MVP.
 
-### 17.6. Dates
+### 14.4. Inventory Components
 
-Show invoice date separately from invoice recorded time. Invoice date controls latest-price ordering. Transaction occurredAt controls inventory ledger order. Relative age is calculated from invoice date at display time.
+- `StockStatusBadge`
+- `TransactionTypeBadge`
+- `ProductForm`
+- `CategoryForm`
+- `SupplierForm`
+- `ProductSupplierSelector`
+- `CategoryMultiSelect`
+- `PurchaseInvoiceForm`
+- `PurchaseInvoiceLineEditor`
+- `StockOutForm`
+- `TransactionDetails`
+- `PurchaseInvoiceDetails`
+- `SupplierPurchasePriceList`
 
-## 18. Responsive Design
+### 14.5. Feedback Components
 
-### 18.1. Desktop
+- `Tooltip`
+- `Modal`
+- `ConfirmationDialog`
+- `ToastNotification`
+- `InlineValidationMessage`
 
-- Persistent sidebar.
-- Multi-column KPI layout.
-- Full data tables.
-- Page actions and filters visible.
-- Purchase invoice line editor can use a table layout.
+Components must support accessible interaction and predictable behavior. Do not add loading indicators for synchronous operations unless they represent a real pending state.
 
-### 18.2. Tablet
+## 15. Interaction and Feedback Rules
 
-- Collapsible sidebar.
-- KPI cards adapt to width.
-- Forms remain readable.
-- Tables may scroll horizontally without hiding critical data.
+### 15.1. Forms
 
-### 18.3. Mobile
+- Every input must have a visible label.
+- Identify required fields.
+- Explain how to correct validation errors.
+- Preserve valid values after validation failure.
+- Prevent submit when required validation fails.
+- Prevent duplicate submission.
+- Show success feedback only after data is saved.
+- Show an error when validation or persistence fails.
 
-- Compact navigation drawer.
-- Single-column page layout.
-- Stacked KPI cards.
-- Purchase invoice lines use stacked cards or a readable compact layout.
-- Primary actions remain visible and touch-friendly.
-- Destructive confirmation dialogs fit the viewport.
-- Do not hide quantity, unit price, supplier, invoice date, or transaction status.
+### 15.2. Tables
 
-## 19. UI States
+- Keep important information easy to scan.
+- Align numeric values consistently.
+- Use clear sort and filter labels.
+- Show active filters and allow the user to clear them.
+- Provide a useful empty-results state.
+- Keep row actions understandable.
 
-Every data-driven page must handle the states that apply to it.
+### 15.3. Destructive Actions
 
-### 19.1. Loading
+- Require confirmation before deleting a Product, Category, or Supplier.
+- State which record will be deleted.
+- Explain why deletion is blocked when a business rule prevents it.
+- Explain that Product history and purchase invoices remain after Product deletion.
+- Do not perform unapproved cascading deletes.
+- Do not show destructive actions for posted Purchase Invoices in this draft.
+- Do not show edit, delete, undo, or reversal actions for posted inventory transactions in this draft.
 
-Use a skeleton or progress indicator while local data is prepared. Do not imply a server request.
+### 15.4. Action Feedback
 
-### 19.2. Empty
+Provide clear feedback for:
 
-Examples:
+- Successful create, update, and delete operations.
+- Successful Purchase Invoice posting.
+- Successful Stock OUT.
+- Validation errors.
+- Persistence failures.
+- Empty search results.
+- Unsaved form changes, where relevant.
 
-- No Products exist: offer Create Product.
-- No Suppliers exist: explain that a supplier is required before recording a purchase invoice.
-- No Purchase Invoices exist: offer New Purchase Invoice.
-- No inventory transactions exist: explain that opening stock and stock movements appear here.
-- No sales data exists in the selected range: offer another range when possible.
-- No purchase history exists for a supplier-product pair: show `No recorded purchase`.
+## 16. Data Presentation Rules
 
-### 19.3. Error
+### 16.1. Stock Status
 
-Show a useful message when LocalStorage data cannot be read or written. Do not silently reset data.
+Let `Q` be current stock and `M` be the Product minimum stock threshold.
 
-### 19.4. Success
+| Display status | Condition | Notes |
+|---|---|---|
+| Out of Stock | `Q = 0` | Use this visible label when no units are available. |
+| Low Stock | `Q > 0` and `Q <= M` | Show the threshold where useful. |
+| In Stock | `Q > M` | Normal available state. |
 
-Confirm product, category, supplier, invoice, stock, and settings actions only after persistence succeeds.
+Dashboard Low-Stock Products uses `Q <= M` and includes zero-stock Products. The visible status for zero stock remains `Out of Stock`.
 
-### 19.5. Validation
+The default minimum stock value is pending D-02.
 
-Show messages near invalid fields. Identify whole-number, price, relation, and date constraints.
+### 16.2. Numeric Values
 
-### 19.6. Disabled and Blocked
+- Use whole-number quantities only.
+- Display `عدد` or the product package description.
+- Do not show decimal quantity inputs.
+- Use consistent number formatting.
+- Reject negative and invalid numeric values.
 
-Explain why an action is unavailable. Examples include product archive blocked by positive stock, supplier deletion blocked by invoice history, or invoice void blocked by later product movements.
+### 16.3. Currency and Prices
 
-## 20. Accessibility
+- Display money as تومان.
+- Format integer toman amounts consistently.
+- Do not convert toman to rial.
+- Show selling price as the current Product price.
+- Show purchase price with its Supplier and invoice date.
+- Do not show a single ambiguous latest purchase price for a Product with multiple Suppliers.
+- Show `Not set` for a null selling price.
+- Do not settle the zero-price validation until D-03 is approved.
 
-- Provide sufficient contrast.
-- Show visible keyboard focus.
-- Support keyboard navigation for forms, menus, tables, selectors, and dialogs.
-- Give every input an accessible label.
-- Use meaningful button names.
-- Do not use color alone for stock or invoice status.
-- Provide text summaries or accessible tables for charts.
-- Manage focus when dialogs open and close.
-- Use semantic headings and table headers.
-- Announce validation and save feedback to assistive technology.
+### 16.4. Purchase Invoice Amounts
 
-## 21. Frontend and Data Presentation Boundaries
+- Display unit purchase price and line amount.
+- Label a sum of invoice line amounts as `Products Subtotal` or equivalent.
+- Do not label that subtotal as final payable amount until D-05 is approved.
+- Do not show invoice tax, discount, shipping, or additional charge fields before their rules are approved.
 
-This is a UI/UX specification, not an architecture decision.
+### 16.5. Sales Data
 
-- Keep Sales Mock Data separate from editable inventory data.
-- Keep business calculations out of presentational components.
-- Reusable components must not contain hardcoded business sample rows.
-- LocalStorage is the MVP persistence boundary.
-- Routing, state management, form libraries, validation libraries, and folder structure belong to Frontend Architecture.
-- No backend or external integration is required by this document.
+- Identify Sales Analytics as sample or simulated data.
+- Keep sales data visually distinct from inventory transactions.
+- Do not show Stock OUT as a sale.
+- Use one selected date range across all sales widgets.
+- Use the Business Rules formulas for any displayed derived metrics.
+- Do not display Gross Profit or Gross Margin as committed MVP cards until their visible inclusion is confirmed.
+
+### 16.6. Relative Purchase-Price Age
+
+For each Product-Supplier latest purchase record, show the invoice date and a relative age such as `3 days ago` or `2 months ago`. Calculate the relative age from the invoice date at display time. Do not store the relative phrase as historical data.
+
+## 17. Responsive Behavior
+
+### 17.1. Desktop
+
+- Use a persistent sidebar.
+- Use multi-column dashboard layouts where space allows.
+- Display full data tables.
+- Keep primary actions and filters easy to access.
+
+### 17.2. Tablet
+
+- Allow the sidebar to collapse.
+- Adapt dashboard cards to the available width.
+- Keep forms readable.
+- Adapt tables without hiding essential stock or price information.
+
+### 17.3. Mobile
+
+- Use compact navigation.
+- Use single-column page layouts.
+- Stack KPI cards.
+- Use horizontally scrollable tables only when a card layout is not suitable.
+- Keep primary actions visible and touch-friendly.
+- Ensure forms and dialogs fit the viewport.
+- Do not remove essential transaction, supplier, or purchase-price context.
+
+## 18. UI States
+
+Every data-driven page must define applicable states:
+
+| State | Required behavior |
+|---|---|
+| Initial empty state | Explain what data is missing and provide a relevant next action. |
+| Empty search result | Explain that no records match the current query or filters. |
+| Validation error | Identify the field and explain how to fix the value. |
+| Save success | Confirm only after persistence succeeds. |
+| Save failure | Preserve user input and explain that data was not saved. |
+| Disabled action | Explain the business rule that prevents the action. |
+| Unavailable calculation | Explain that the calculation is not available until its business rule is approved. |
+
+Do not display a fake loading state for an operation that completes synchronously.
+
+## 19. Accessibility Requirements
+
+- Use sufficient color contrast.
+- Show a visible keyboard focus indicator.
+- Support keyboard navigation for all interactive controls.
+- Use accessible labels for form fields.
+- Use meaningful button and link text.
+- Do not use color as the only way to communicate stock or transaction status.
+- Give charts a text summary or accessible data alternative.
+- Manage focus in dialogs and support keyboard closing where appropriate.
+- Use semantic page headings and table headers.
+
+## 20. Frontend and Data Presentation Considerations
+
+This section records UI constraints. It does not make final architecture decisions.
+
+- Keep page-level behavior separate from shared presentation components.
+- Define Product, Category, Supplier, ProductSupplier, PurchaseInvoice, PurchaseInvoiceItem, InventoryTransaction, AppSettings, and SalesMockEntry types in the relevant architecture phase.
+- Keep SalesMockEntry separate from editable inventory data.
+- Do not place sample records directly inside reusable UI components.
+- Keep the interface independent from the LocalStorage implementation details.
+- Use one shared money-formatting rule and one shared quantity-formatting rule.
+- Do not implement a business calculation that is still marked as pending in Business Rules.
+- Final choices for routing, state management, forms, validation, data access, and folder structure belong to Frontend Architecture.
+
+## 21. Decisions Required Before Final Implementation
+
+These items are open in Business Rules. This UI document records their impact but does not approve them.
+
+| ID | Topic | UI impact | Required action |
+|---|---|---|---|
+| D-01 | Inventory valuation method | Estimated Inventory Value KPI and Stock OUT cost details | Hide or mark the calculation unavailable until approved. |
+| D-02 | Default minimum stock | Product create/edit default and low-stock behavior | Confirm the default value. |
+| D-03 | Zero selling price | Product selling-price validation and display | Confirm whether zero is allowed only for intentionally free products. |
+| D-04 | Opening stock cost | Product creation form and opening transaction details | Confirm whether positive opening stock requires a unit acquisition cost. |
+| D-05 | Invoice-level adjustments | Purchase Invoice form, line-price wording, and cost values | Confirm how discounts, taxes, shipping, and other charges are handled. |
+| D-06 | Stock OUT reasons | Stock OUT reason field and validation | Confirm the allowed reason list. |
+| D-07 | Purchase Invoice correction | Purchase Invoice details actions | Confirm whether posted invoices are read-only in the MVP or need a reversal workflow. |
+| D-08 | Inventory transaction correction | Transaction details and stock correction actions | Confirm whether the MVP excludes transaction correction or needs a dedicated adjustment/reversal workflow. Do not use a manual Stock IN to reverse Stock OUT. |
+
+Other display choices:
+
+- Confirm whether Gross Profit and Gross Margin appear as visible Sales Analytics metrics.
+- Confirm final pagination defaults during UI design. These defaults do not change business data rules.
 
 ## 22. UI/UX Acceptance Criteria
 
+The UI/UX work for the MVP is complete when the following items are satisfied.
+
 ### 22.1. Application Shell
 
-- [ ] Navigation includes all MVP pages and excludes sales orders and customer management.
-- [ ] Active page is identifiable.
-- [ ] Responsive navigation works on desktop, tablet, and mobile.
+- [ ] The application has a consistent sidebar, top bar, and main content area.
+- [ ] Navigation contains only MVP destinations.
+- [ ] The current page is identifiable.
+- [ ] No user profile, authentication, customer, sales order, payment, or purchase order navigation is present.
+- [ ] There is a Purchase Invoices destination for stock receipts.
+- [ ] There is no separate manual Stock IN destination.
+- [ ] The layout works on desktop, tablet, and mobile.
 
 ### 22.2. Dashboard and Sales Analytics
 
-- [ ] Dashboard displays all four inventory KPIs using the approved formulas.
-- [ ] Total Units in Stock counts packages/items, not package contents.
-- [ ] Low-stock count includes zero-stock products when the threshold permits.
-- [ ] Sales chart and product ranking use mock data and show Sample Data.
-- [ ] Sales Analytics displays quantity, revenue, gross profit, gross margin, date range, and product comparisons.
-- [ ] Sales data remains independent of inventory transactions.
+- [ ] Dashboard displays Total Products.
+- [ ] Dashboard displays Total Units in Stock.
+- [ ] Dashboard displays Low-Stock Products using the Business Rules threshold calculation.
+- [ ] Estimated Inventory Value is hidden or marked unavailable until D-01, D-04, and D-05 are approved.
+- [ ] Dashboard displays sales charts using mock data.
+- [ ] Dashboard displays recent inventory transactions.
+- [ ] Dashboard displays best-selling products using mock data.
+- [ ] Sales Analytics displays sales quantity and sales revenue for a selected date range.
+- [ ] Sales Analytics displays charts and product comparisons.
+- [ ] Gross Profit and Gross Margin appear only after product-owner confirmation.
+- [ ] Sales mock data is clearly identified and remains separate from inventory transactions.
+- [ ] No real order, customer, sales invoice, or payment workflow is presented as an MVP feature.
 
 ### 22.3. Products, Categories, and Suppliers
 
-- [ ] Product form supports multi-category and multi-supplier assignment.
-- [ ] Product form supports package description, current selling price, minimum stock, and opening stock.
-- [ ] Positive opening stock requires unit acquisition cost.
-- [ ] Product details show latest purchase price per supplier, invoice date, and relative age.
-- [ ] Null and zero selling prices display differently.
-- [ ] Category and supplier deletion constraints are explained.
-- [ ] Product archive is blocked while stock is positive and preserves history.
+- [ ] Product list supports create, view, update, and rule-based delete actions.
+- [ ] Product list supports search, category and stock filters, sorting, and pagination.
+- [ ] Product form supports package description and current selling price.
+- [ ] Product form supports multiple category assignments.
+- [ ] Product form supports multiple supplier links.
+- [ ] Product stock unit is fixed and displayed as `عدد`.
+- [ ] Product details show current stock and supplier-specific latest purchase-price history.
+- [ ] Product details show `No recorded purchase` when a supplier has no invoice history.
+- [ ] Category deletion is blocked while Product links exist.
+- [ ] Supplier details show related Products and their latest supplier-specific purchase prices.
+- [ ] Supplier deletion is blocked while product links or invoice history exist.
+- [ ] Product deletion is blocked while stock is positive.
+- [ ] Historical transactions and invoice records remain readable after Product deletion.
 
-### 22.4. Purchase Invoices and Stock
+### 22.4. Purchase Invoices and Stock IN
 
-- [ ] Purchase Invoice form captures supplier, invoice date, optional number/note, and one or more lines.
-- [ ] Each line captures product, whole-number quantity, and unit purchase price in IRT.
-- [ ] Items Subtotal is calculated correctly.
-- [ ] No tax, freight, shipping, amount due, or payment status is shown.
-- [ ] Posting creates one Stock IN transaction per line atomically.
-- [ ] Posted invoice cannot be edited or deleted.
-- [ ] Eligible invoice can be voided with reason and compensating transactions.
-- [ ] Void is blocked when a later movement exists for any affected product.
-- [ ] Stock OUT requires a reason and prevents negative stock.
-- [ ] Transactions are immutable and preserve snapshots.
+- [ ] Purchase Invoice list supports opening posted invoice details.
+- [ ] Purchase Invoice form requires one Supplier, a valid invoice date, and at least one line.
+- [ ] Invoice number and note are optional.
+- [ ] Each line requires a Product, positive whole-number quantity, and integer-toman unit purchase price.
+- [ ] The Product must be linked to the selected Supplier.
+- [ ] Duplicate Product lines are prevented.
+- [ ] The form clearly shows the total stock quantity that will be received.
+- [ ] The line sum is labelled as a product subtotal, not a final payable total while D-05 is open.
+- [ ] Posting confirmation explains the inventory effect.
+- [ ] Each invoice line creates exactly one Stock IN transaction.
+- [ ] Invoice, lines, transactions, and stock changes are saved as one logical operation.
+- [ ] A persistence failure does not leave partial data.
+- [ ] Posted invoice details are read-only until D-07 is approved.
 
-### 22.5. Quality
+### 22.5. Stock OUT and Transactions
 
-- [ ] All displayed money is IRT / integer tomans.
-- [ ] All stock quantities are whole numbers.
-- [ ] LocalStorage errors do not produce false success messages.
-- [ ] Loading, empty, error, validation, success, and disabled states are handled.
-- [ ] Keyboard, contrast, focus, and screen-reader requirements are met.
+- [ ] Stock OUT form shows the selected Product and current available quantity.
+- [ ] Stock OUT quantity must be a positive whole number.
+- [ ] Quantity greater than available stock is rejected.
+- [ ] Stock OUT reason follows the approved D-06 values.
+- [ ] Successful Stock OUT creates exactly one transaction.
+- [ ] Stock OUT does not update Sales Analytics.
+- [ ] Transaction history supports filtering by type and Product.
+- [ ] Transaction details show quantity before and after the movement.
+- [ ] Invoice-based Stock IN details link to their source Purchase Invoice.
+- [ ] Historical transaction details remain readable after Product deletion.
+- [ ] Transaction details do not show unapproved edit, delete, undo, or reversal actions.
+
+### 22.6. Settings, Feedback, and Quality
+
+- [ ] Settings contains only approved basic display preferences.
+- [ ] Supported preferences persist in LocalStorage.
+- [ ] Forms provide validation and clear feedback.
+- [ ] Destructive actions require confirmation.
+- [ ] Loading, empty, error, success, and disabled states are handled where applicable.
+- [ ] Tables and charts remain readable at supported screen sizes.
+- [ ] Keyboard focus, labels, and status text are accessible.
+- [ ] No undefined business calculation is presented as a confirmed value.
 
 ## 23. PRD Requirement Traceability
 
-| PRD requirement | UI area |
-|---|---|
-| FR-01–FR-07 | Dashboard |
-| FR-08–FR-16 | Products |
-| FR-17–FR-20 | Categories |
-| FR-21–FR-25 | Suppliers |
-| FR-26–FR-32 | Stock Operations and Product Form |
-| FR-33–FR-38 | Transactions and Transaction Details |
-| FR-39–FR-43 | Sales Analytics |
-| FR-44–FR-45 | Settings |
-| FR-46–FR-49 | Purchase Invoice List, Form, and Details |
-| FR-50–FR-52 | Product Details, Purchase Price History, Dashboard |
-| FR-53–FR-54 | Purchase Invoice Details and Transactions |
+| PRD requirement | UI area | Coverage |
+|---|---|---|
+| FR-01 to FR-07 | Dashboard | Inventory KPIs, recent transactions, and sales mock-data widgets. FR-04 is gated by D-01, D-04, and D-05. |
+| FR-08 to FR-16, FR-46 to FR-51 | Products | Product CRUD, list controls, package description, selling price, multiple categories/suppliers, and supplier-specific latest prices. |
+| FR-17 to FR-20 | Categories | Category CRUD and relationship-aware deletion. |
+| FR-21 to FR-25, FR-52 | Suppliers | Supplier CRUD, related Products, and purchase-price history. |
+| FR-26, FR-53 to FR-60 | Purchase Invoices | Invoice capture, validation, posting, Stock IN transaction creation, and read-only history. |
+| FR-27 to FR-31, FR-61 to FR-62 | Stock OUT and Product forms | Stock OUT, threshold behavior, opening cost, and reasons. Some behavior depends on D-02, D-04, and D-06. |
+| FR-32, FR-33 to FR-38, FR-63 | Products and Transactions | Opening stock and full transaction history. |
+| FR-39 to FR-43, FR-64 to FR-67 | Sales Analytics | Sales mock data, date range, charts, comparisons, and optional derived metrics. |
+| FR-44 to FR-45 | Settings | Basic local display preferences. |
+
+NFR-01 to NFR-12 are covered by the application shell, responsive layouts, forms, tables, validation, persistence behavior, accessibility, feedback, and historical traceability rules.
 
 ## 24. Future Considerations
 
-The following items are not MVP commitments: real sales, sales orders, customers, sales invoices, payment processing, purchase orders, supplier balances, tax accounting, invoice-wide freight allocation, multiple warehouses, barcode scanning, notifications, authentication, roles, backend integration, cloud synchronization, export, and scheduled reports.
+The following items are outside the current MVP. They may be reviewed in a future scope update:
 
-A future feature must be approved in the PRD before it is added to this specification.
+- Sales order management.
+- Customer management.
+- Sales invoices and payment processing.
+- Purchase order management.
+- Supplier payments and accounts payable.
+- Purchase invoice correction and reversal workflow, unless D-07 brings a limited version into the MVP.
+- Multiple warehouses.
+- Barcode scanning.
+- Lot, batch, expiry, and serial-number tracking.
+- Advanced inventory workflows.
+- Advanced analytics and exports.
+- Notifications.
+- User accounts and permissions.
+- Backend, server database, and synchronization.
+
+Their presence in this section does not make them MVP commitments.
 
 ## 25. Document Control
 
@@ -875,14 +1093,15 @@ A future feature must be approved in the PRD before it is added to this specific
 |---|---|
 | Document | Storix UI/UX Specification |
 | Version | 1.2 |
-| Status | Draft for Documentation Review |
+| Status | Draft for cross-document review — not approved for implementation |
+| Last Updated | 2026-11-11 |
 | Primary Reference | `docs/PRD.md` |
 | Business Rules | `docs/BUSINESS_RULES_AND_DATA_MODEL.md` |
-| Next Step | Documentation Review across the three specification documents. |
+| Next Step | Resolve D-01 through D-08, then complete final UI/UX and cross-document review. |
 
 ## 26. Change Log
 
 | Version | Date | Changes |
 |---|---|---|
-| 1.2 | 2026-11-11 | Added Purchase Invoice list, form, details, posting, and constrained void flows. Added supplier-specific latest purchase-price display, current selling price semantics, Moving Weighted Average presentation, IRT formatting, and count-based stock UI. Aligned all MVP pages and excluded workflows with PRD v2.1. |
-| 1.1 | 2026-11-10 | Previous UI/UX baseline aligned with PRD v2.0. |
+| 1.2 | 2026-11-11 | Added Purchase Invoice pages and Stock IN flow, product pricing and package fields, multi-select category and supplier relationships, supplier-specific purchase-price display, whole-number quantity rules, invoice-based transaction history, deletion constraints, and decision gates. Aligned navigation, forms, acceptance criteria, and PRD traceability. |
+| 1.1 | 2026-11-10 | Initial UI/UX specification aligned with PRD v2.0. |
