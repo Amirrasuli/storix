@@ -1,8 +1,8 @@
 # Storix — Business Rules & Data Model
 
 **Document:** Business Rules & Data Model  
-**Version:** 1.3  
-**Status:** Draft for cross-document review — not approved for implementation  
+**Version:** 1.4  
+**Status:** Approved for Frontend Architecture  
 **Last Updated:** 2026-11-11  
 **Product:** Storix  
 **Primary Reference:** [`PRD.md`](./PRD.md)  
@@ -21,7 +21,7 @@ Use this document with the PRD and UI/UX Specification:
 - The **UI/UX Specification** defines how users see and use the approved product behavior.
 - Frontend Architecture will define implementation details. It must not change the business rules in this document.
 
-A decision marked **Approved** is a confirmed product-owner decision. A decision marked **Proposed** or **Requires approval** is not final. Do not implement it as a confirmed rule until the product owner approves it.
+All decisions D-01 through D-09 in this document have product-owner approval. Treat them as binding MVP rules. Any change requires an explicit product decision and updates to all affected documents.
 
 If documents conflict, do not choose a rule by assumption. Record the conflict and resolve it across all affected documents.
 
@@ -179,9 +179,9 @@ These are conceptual TypeScript shapes. Final file names, folder locations, stat
 | `sku` | `string` | Yes | Required. Unique after trimming and case normalization. |
 | `description` | `string \| null` | No | Plain text. |
 | `packageDescription` | `string \| null` | No | Description of one stock unit, such as `5 kg bag`. Does not affect quantity calculations. |
-| `sellingPriceIrt` | `number \| null` | Decision pending | Integer toman amount for one stock unit. `null` means not set. Zero-price behavior is D-03. |
+| `sellingPriceIrt` | `number \| null` | No | Non-negative safe integer in toman for one stock unit. `null` means Not set; `0` means Free. |
 | `stockUnitCode` | `"unit"` | Yes | Fixed in the MVP. Display as `عدد`. The user cannot change it. |
-| `minimumStockLevel` | `number` | Yes | Non-negative safe integer. Default behavior is D-02. |
+| `minimumStockLevel` | `number` | Yes | Non-negative safe integer. Default: `0`. User may set a product-specific threshold. |
 | `createdAt` | `string` | Yes | ISO 8601 UTC timestamp. |
 | `updatedAt` | `string` | Yes | ISO 8601 UTC timestamp. |
 
@@ -261,8 +261,8 @@ Rules:
 3. The pair `purchaseInvoiceId + productId` must be unique.
 4. The supplier name is snapshotted for historical readability.
 5. `invoiceDate` determines the date used for latest-price ordering. `recordedAt` records when Storix received the data.
-6. A posted invoice is immutable. D-07 controls whether a reversal workflow will be supported.
-7. Invoice-level discounts, taxes, shipping, and other charges are not fully defined until D-05 is approved. Do not present a line subtotal as a final payable invoice total.
+6. A posted invoice and its lines are immutable in the MVP. Do not provide edit, delete, void, or reversal actions.
+7. The MVP does not capture or allocate invoice-level discounts, taxes, shipping, or other charges. Use the entered line unit price as the recorded acquisition-cost basis. Label the sum of line amounts as `Recorded Purchase Subtotal`, not as the supplier’s final payable amount.
 
 ### 6.7. PurchaseInvoiceItem
 
@@ -275,9 +275,9 @@ Rules:
 | `skuSnapshot` | `string` | Yes | Product SKU when the invoice was posted. |
 | `packageDescriptionSnapshot` | `string \| null` | No | Package description when the invoice was posted. |
 | `quantity` | `number` | Yes | Positive safe integer count of product units. |
-| `unitPurchasePriceIrt` | `number` | Yes | Entered unit purchase price in integer tomans. D-05 defines the treatment of invoice-level adjustments. |
+| `unitPurchasePriceIrt` | `number` | Yes | Entered unit purchase price in integer tomans. This is the acquisition-cost basis used by MWAC. Invoice-level adjustments are not captured in the MVP. |
 
-The line amount before invoice-level adjustments is derived as `quantity × unitPurchasePriceIrt`. Do not call this the final invoice payable amount while D-05 remains open.
+The line amount is `quantity × unitPurchasePriceIrt`. The invoice total is the sum of line amounts and must be labelled `Recorded Purchase Subtotal`. It is not represented as the supplier’s final payable amount because invoice-level adjustments are outside the MVP.
 
 Rules:
 
@@ -306,9 +306,9 @@ Rules:
 | `quantityAfter` | `number` | Yes | Stock immediately after the movement. |
 | `supplierIdSnapshot` | `string \| null` | Conditional | Required for invoice Stock IN. Optional for opening stock if known. |
 | `supplierNameSnapshot` | `string \| null` | Conditional | Required for invoice Stock IN. Optional for opening stock if known. |
-| `unitPurchasePriceIrt` | `number \| null` | Conditional | Acquisition price for opening stock or Stock IN. D-01, D-04, and D-05 affect cost use. |
-| `costRemovedIrt` | `number \| null` | Conditional | Total cost removed for Stock OUT when the approved valuation method requires it. |
-| `reason` | `StockOutReason \| null` | Conditional | Required for Stock OUT after D-06 approval. |
+| `unitPurchasePriceIrt` | `number \| null` | Conditional | Required for `OPENING_STOCK` and `STOCK_IN`. Integer toman amount per unit. |
+| `costRemovedIrt` | `number \| null` | Conditional | Total cost removed for `STOCK_OUT`, calculated using the approved MWAC rule. |
+| `reason` | `StockOutReason \| null` | Conditional | Required for every `STOCK_OUT`. Allowed values: `DAMAGE`, `INTERNAL_USE`, `OTHER`. |
 | `note` | `string \| null` | No | Optional user note. |
 | `occurredAt` | `string` | Yes | ISO 8601 UTC timestamp created by the application. |
 
@@ -404,62 +404,82 @@ It is descriptive only. Storix does not multiply or divide stock quantity by pac
 
 The current selling price belongs to Product. It is the current default/list price for one countable product unit.
 
-It is not a historical sales price. Sales Analytics uses the values in SalesMockEntry and must not calculate historical sales revenue from the current Product selling price.
+- `null` means the price has not been set.
+- `0` means the Product is intentionally free.
+- A positive integer is the current selling price in toman for one stock unit.
+- Negative, decimal, non-finite, and unsafe integer values are invalid.
+- The UI must display `Not set` for `null` and `Free` for `0`.
 
-The rule for zero selling price remains open under D-03.
+This is not a historical sales price. Sales Analytics uses SalesMockEntry values and must not calculate historical revenue from the current Product selling price.
 
 ### 8.4. Invoice Line Amount
 
-Before invoice-level adjustments, calculate a line amount as:
+Calculate each line amount as:
 
 `Line Amount = Quantity × Unit Purchase Price`
 
-D-05 must define how invoice-level discounts, taxes, shipping, and other charges affect the effective acquisition cost. Until then:
-
-- Do not add unsupported invoice adjustment fields.
-- Do not label a line subtotal as a final payable amount.
-- Do not use the line price as an all-in landed cost unless the product owner confirms that rule.
+The invoice-level `Recorded Purchase Subtotal` is the sum of all line amounts. The MVP does not capture invoice-level discount, tax, shipping, or other charges and does not allocate these amounts to product costs. Use the recorded unit line price as the acquisition-cost basis for inventory valuation. Do not label the subtotal as the supplier’s final payable amount.
 
 ## 9. Inventory Valuation
 
-### 9.1. Status
+### 9.1. Approved Method: Moving Weighted Average Cost
 
-The valuation method is not approved. The recommendation is Moving Weighted Average Cost. Do not implement inventory value or cost-of-stock-out calculations as confirmed behavior until D-01 and the related cost-input decisions are approved.
+Storix uses Moving Weighted Average Cost (MWAC) for inventory valuation. The method applies to each Product in the single warehouse. It does not track purchase lots or serial-level cost.
 
-### 9.2. Proposed Moving Weighted Average Method
+Derive these values for each Product by replaying its ordered Inventory Transaction ledger:
 
-This section records the proposed method for review. It is not an approved implementation rule.
+- `quantityOnHand`: the current quantity from the transaction ledger.
+- `inventoryValueIrt`: the remaining carrying value in integer tomans.
+- `averageUnitCost`: the derived value `inventoryValueIrt / quantityOnHand` when quantity is greater than zero.
+
+Do not treat these as manually editable Product fields. Keep the transaction ledger as the source of truth. Derive carrying value and average unit cost from the immutable transaction cost snapshots.
+
+### 9.2. Receipt Calculation
 
 Let:
 
 - `Q` = quantity on hand before a receipt.
-- `V` = inventory acquisition value before a receipt.
+- `V` = inventory carrying value before a receipt, in integer tomans.
 - `q` = quantity received.
-- `p` = effective acquisition price per unit after the approved D-05 treatment.
+- `p` = recorded unit acquisition cost in integer tomans.
 
-After a receipt:
+For each opening-stock or invoice receipt:
 
-`New Quantity = Q + q`
+```text
+New Quantity = Q + q
+New Carrying Value = V + (q × p)
+New Average Cost = New Carrying Value / New Quantity
+```
 
-`New Inventory Value = V + (q × p)`
+Store carrying-value totals as integer tomans. The average unit cost may be fractional. Keep the exact rational result for calculation where practical; do not round the average unit cost before calculating a later movement.
 
-`New Average Cost = New Inventory Value / New Quantity`
+### 9.3. Stock OUT Cost and Rounding
 
-For Stock OUT, the proposed cost removed is:
+For a partial Stock OUT:
 
-`Cost Removed = round(Stock OUT Quantity × Inventory Value Before / Quantity Before)`
+```text
+Cost Removed = round-half-up(
+  Stock OUT Quantity × Carrying Value Before / Quantity Before
+)
+```
 
-If the full remaining quantity is removed, the cost removed must equal the full remaining inventory value. Do not allow rounding to produce a negative inventory value. Store money totals as integer tomans.
+Rules:
 
-### 9.3. Estimated Inventory Value KPI
+1. Round a non-negative Stock OUT cost to the nearest whole toman. Exact half values round up.
+2. If Stock OUT removes the full remaining quantity, remove the full remaining carrying value. Do not leave a residual value because of rounding.
+3. The new carrying value must never be negative.
+4. Use safe integer arithmetic. Check multiplication and totals for overflow before saving.
+5. Store `costRemovedIrt` on the Stock OUT transaction as an immutable snapshot.
 
-If D-01, D-04, and D-05 are approved and all required costs exist:
+### 9.4. Estimated Inventory Value KPI
 
-`Estimated Inventory Value = Sum(Current Quantity × Current Moving Average Cost)`
+Calculate:
 
-This is an estimated acquisition cost of stock on hand. It is not sales revenue, selling value, profit, or cash balance.
+`Estimated Inventory Value = Sum(Product Inventory Carrying Value)`
 
-Until the cost method and missing-cost behavior are approved, hide the KPI or show a clear unavailable state. Do not show `0` as a substitute for unknown cost.
+Display this metric on the Dashboard. Label it as estimated acquisition cost of current stock. It is not selling value, market value, revenue, profit, or cash balance.
+
+All opening stock with a positive quantity must have a known acquisition cost. All invoice receipts have a recorded unit purchase price. Therefore, the MVP has a cost basis for all stock created through supported flows. If stored data fails validation or a required cost is missing, show an unavailable state and report the data problem. Do not substitute zero.
 
 ## 10. Inventory Business Rules
 
@@ -473,11 +493,11 @@ The transaction ledger is the source of truth. Do not let the user edit current 
 
 ### 10.2. Product Creation and Opening Stock
 
-1. Product creation may include an opening stock quantity. The proposed default is zero; D-02 concerns the minimum stock default, not this initial quantity.
+1. Product creation may include an opening stock quantity. Its default is zero. This is separate from the minimum stock threshold, which also defaults to zero.
 2. If the opening quantity is greater than zero, create exactly one `OPENING_STOCK` transaction in the same save operation as the Product.
 3. The opening transaction starts with `quantityBefore = 0` and ends with `quantityAfter = initialStockQuantity`.
-4. D-04 must be approved before the opening-cost field and its validation become final.
-5. Under the current recommendation, positive opening stock requires a known acquisition cost per unit. Supplier may be optional when unknown, but if selected it must already be linked to the product.
+4. Positive opening stock requires a known, non-negative integer-toman acquisition cost per unit.
+5. Supplier is optional because the original supplier may be unknown. If a supplier is selected, it must already be linked to the Product.
 6. Do not create a Purchase Invoice for opening stock.
 7. If the opening quantity is zero, do not create a transaction.
 8. Do not create an extra `STOCK_IN` transaction for opening stock.
@@ -498,8 +518,9 @@ The transaction ledger is the source of truth. Do not let the user edit current 
 11. The invoice header, all lines, all Stock IN transactions, and updated stock data must be saved together.
 12. Prevent duplicate submission while the save is in progress.
 13. If validation or persistence fails, do not save a partial invoice or a partial stock update.
-14. A posted invoice and its lines are immutable in the MVP. D-07 controls the future correction or reversal workflow.
-15. A stock adjustment does not rewrite an invoice line or its purchase-price history.
+14. A posted invoice and its lines are immutable in the MVP. Do not provide edit, delete, void, or reversal actions.
+15. The unit price entered on each line is the acquisition-cost basis for that receipt. Invoice-level adjustments are not captured or allocated.
+16. A posted invoice cannot be corrected in the MVP. Warn the user before final confirmation.
 
 ### 10.4. Stock OUT
 
@@ -508,10 +529,11 @@ The transaction ledger is the source of truth. Do not let the user edit current 
 3. Quantity must not exceed current stock.
 4. Resulting stock must not be negative.
 5. Create exactly one `STOCK_OUT` transaction only after validation passes.
-6. D-06 defines the approved reason values. The proposed values are `DAMAGE`, `INTERNAL_USE`, `ADJUSTMENT`, and `OTHER`. Do not include `SALE` in the MVP.
-7. A Stock OUT operation is not a sale and does not update SalesMockEntry.
-8. If D-01 is approved, snapshot the cost removed using the approved valuation method.
-9. If validation or persistence fails, do not change stock and do not create a transaction.
+6. A reason is required. Allowed values are `DAMAGE`, `INTERNAL_USE`, and `OTHER`. Do not include `SALE` or `ADJUSTMENT`.
+7. Require a note when the reason is `OTHER`.
+8. A Stock OUT operation is not a sale and does not update SalesMockEntry.
+9. Calculate and snapshot the cost removed using MWAC.
+10. If validation or persistence fails, do not change stock and do not create a transaction.
 
 ### 10.5. Transaction Ordering and Immutability
 
@@ -519,9 +541,9 @@ The transaction ledger is the source of truth. Do not let the user edit current 
 2. Do not backdate stock movements. The application creates `occurredAt` at save time.
 3. Each product transaction receives an increasing `sequence` value.
 4. Use the sequence to keep transaction replay order stable.
-5. The MVP does not define a general transaction correction or reversal workflow. Do not reverse a Stock OUT by creating a manual Stock IN; Stock IN is created only by posting a Purchase Invoice.
-6. If a user records a Stock OUT in error, the current MVP has no direct undo action. A dedicated adjustment/reversal workflow requires a separate product decision under D-08.
-7. A stock adjustment must not rewrite an immutable Purchase Invoice or its purchase-price history.
+5. The MVP does not provide transaction edit, delete, undo, adjustment, or reversal actions. Do not reverse a Stock OUT by creating a manual Stock IN; Stock IN is created only by posting a Purchase Invoice.
+6. A Stock OUT error cannot be corrected in the MVP. The UI must warn the user before posting. A future version may add auditable compensating transactions; it must not mutate or delete the original ledger entry.
+7. Inventory corrections must not rewrite an immutable Purchase Invoice or its purchase-price history.
 
 ### 10.6. Product Deletion
 
@@ -546,14 +568,14 @@ A Supplier cannot be deleted while it has active ProductSupplier links or Purcha
 
 ### 10.9. Purchase Invoice Correction
 
-Posted invoice correction, void, and reversal behavior remains pending under D-07.
+Posted Purchase Invoices and their lines are immutable in the MVP.
 
-Until D-07 is approved:
-
-- Do not offer edit or delete actions for posted invoices.
-- Do not offer a void or reverse action.
-- Do not imply that Stock OUT reverses the invoice's purchase-price history.
-- Keep invoice details read-only after posting.
+- The user may edit the form before posting.
+- The UI must show a review step and require explicit confirmation before posting.
+- After posting, invoice details are read-only.
+- Do not offer edit, delete, void, or reversal actions.
+- A posted invoice cannot be corrected in the MVP. Warn the user before posting.
+- A future version may add a linked invoice reversal workflow that also reverses the related stock and cost effects. It must preserve the original invoice and transactions.
 
 ## 11. Low-Stock Rules and Dashboard Metrics
 
@@ -578,7 +600,7 @@ The Dashboard low-stock count uses `Q <= M`. This count includes zero-stock prod
 | Total Products | Count active Product records. | MVP |
 | Total Units in Stock | Sum current stock across active products. | MVP |
 | Low-Stock Products | Count active products where `Q <= M`. | MVP |
-| Estimated Inventory Value | Sum stock multiplied by approved current average cost. | Blocked by D-01, D-04, and D-05. |
+| Estimated Inventory Value | Sum the current inventory carrying value for all active Products. | MVP; calculated using MWAC. |
 | Recent Inventory Transactions | Latest transactions by `occurredAt` descending, then `sequence`. | MVP |
 | Best-Selling Products | Sales mock entries grouped by product and ranked by revenue descending. | MVP, mock data only |
 
@@ -612,7 +634,7 @@ When total revenue is zero, show `—` for Gross Margin. Gross Profit is not net
 
 The mock dataset must supply revenue and cost values. Do not derive historical revenue from current Product selling prices or derive sales cost from current inventory valuation.
 
-The inclusion of Gross Profit and Gross Margin as visible MVP cards is a non-blocking product-display choice. The formulas and data fields are defined here; the PRD marks their visible dashboard placement as subject to final product-owner review.
+Gross Profit and Gross Margin are approved visible metrics on the Sales Analytics page. Do not add them as required Dashboard KPI cards. They use only SalesMockEntry data and remain clearly labelled as simulated values.
 
 ### 12.3. Best-Selling Products and Comparisons
 
@@ -679,8 +701,8 @@ Persistence rules:
 | Product name | Required after trimming. |
 | SKU | Required; normalized; unique without case sensitivity. |
 | Package description | Optional text. Must not affect quantity. |
-| Selling price | `null` or a non-negative safe integer in toman; zero behavior remains D-03. |
-| Minimum stock | Non-negative safe integer; default behavior remains D-02. |
+| Selling price | `null` or a non-negative safe integer in toman. Zero is valid and means Free. |
+| Minimum stock | Non-negative safe integer. Default is `0`. |
 | ProductCategory | Both records must exist; pair must be unique. |
 | Supplier name | Required after trimming. |
 | ProductSupplier | Both records must exist; pair must be unique. |
@@ -691,11 +713,11 @@ Persistence rules:
 | Purchase Invoice quantity | Positive safe integer. |
 | Purchase Invoice unit price | Non-negative safe integer toman amount. |
 | Opening stock quantity | Non-negative safe integer. |
-| Opening stock cost | Conditional on D-04; do not silently treat unknown cost as zero. |
+| Opening stock cost | Required as a known non-negative integer-toman unit cost when opening quantity is positive. |
 | Stock quantity | Non-negative safe integer. |
 | Movement quantity | Positive safe integer. |
 | Stock OUT | Cannot exceed current stock. |
-| Stock OUT reason | Conditional on D-06; must use an approved reason value. |
+| Stock OUT reason | Required; one of `DAMAGE`, `INTERNAL_USE`, or `OTHER`. Require a note for `OTHER`. |
 | Transaction snapshots | Required where defined; immutable after creation. |
 | Sales quantity | Positive safe integer. |
 | Sales revenue | Non-negative safe integer toman amount. |
@@ -705,7 +727,7 @@ Persistence rules:
 
 All numeric inputs must reject required blank values, `NaN`, infinity, prohibited negative values, decimal quantities, and values outside the safe integer range.
 
-## 15. Proposed TypeScript Domain Types
+## 15. TypeScript Domain Types (Conceptual)
 
 These types communicate the domain shape. They do not choose file locations or architecture.
 
@@ -721,7 +743,6 @@ export type InventoryTransactionType =
 export type StockOutReason =
   | "DAMAGE"
   | "INTERNAL_USE"
-  | "ADJUSTMENT"
   | "OTHER";
 
 export interface Product {
@@ -861,7 +882,7 @@ These scenarios define business outcomes. They are not UI wireframes or code-lev
 
 1. Select a Product with available stock.
 2. Enter a positive whole-number quantity that does not exceed stock.
-3. Select an approved reason after D-06 is resolved.
+3. Select one reason: `DAMAGE`, `INTERNAL_USE`, or `OTHER`. When `OTHER` is selected, enter a note.
 4. Save the operation.
 5. Verify exactly one Stock OUT transaction is created and stock is reduced.
 6. Try to remove more stock than is available. Verify the operation is rejected with no data change.
@@ -871,7 +892,7 @@ These scenarios define business outcomes. They are not UI wireframes or code-lev
 
 1. Create a Product with opening quantity zero. Verify no opening transaction is created.
 2. Create another Product with positive opening quantity.
-3. Apply the D-04 approved cost rule.
+3. Enter a known, non-negative integer-toman unit acquisition cost.
 4. Verify exactly one OPENING_STOCK transaction is created with the correct before and after quantities.
 5. Simulate a persistence failure. Verify neither the Product nor the opening transaction is partially saved.
 
@@ -907,35 +928,29 @@ These scenarios define business outcomes. They are not UI wireframes or code-lev
 3. Verify that stored value remains integer `160000`.
 4. Verify that Storix does not convert toman to rial or apply decimal minor-unit scaling.
 
-## 17. Decisions and Dependencies
+## 17. Approved Product Decisions
 
-### 17.1. Remaining Product-Owner Decisions
+The product owner approved all decisions below on 2026-11-11. These decisions are binding for the MVP.
 
-These eight items are still open. D-08 was added during cross-document review because the previous opposite-movement correction rule conflicted with the rule that all Stock IN records must originate from a Purchase Invoice. The recommendations below are not approvals.
+| ID | Decision | Approved MVP rule |
+|---|---|---|
+| D-01 | Inventory valuation | Use Moving Weighted Average Cost (MWAC). Store carrying-value totals as integer toman amounts. Use round-half-up for partial Stock OUT cost. A full Stock OUT removes the full remaining carrying value. |
+| D-02 | Default minimum stock | Default `minimumStockLevel` to `0`. Allow a non-negative whole-number threshold per Product. Low-stock count uses `Q <= M`; zero-stock status remains `Out of Stock`. |
+| D-03 | Zero selling price | Allow `0` to mean Free. Use `null` to mean Not set. Reject negative, decimal, non-finite, and unsafe integer values. |
+| D-04 | Opening stock cost | Require a known, non-negative integer-toman unit acquisition cost when opening quantity is positive. Supplier is optional. |
+| D-05 | Invoice-level adjustments | Do not capture or allocate invoice-level discounts, taxes, shipping, or other charges. The entered invoice-line unit price is the cost basis for MWAC. Label line totals as `Recorded Purchase Subtotal`. |
+| D-06 | Stock OUT reasons | Allow `DAMAGE`, `INTERNAL_USE`, and `OTHER`. Do not include `SALE` or `ADJUSTMENT`. Require a note for `OTHER`. |
+| D-07 | Posted Purchase Invoice correction | Posted invoices are immutable. No edit, delete, void, or reversal actions in the MVP. |
+| D-08 | Inventory transaction correction | Posted transactions are immutable. No edit, delete, undo, adjustment, or reversal actions in the MVP. Warn before Stock OUT posting. |
+| D-09 | Gross Profit and Gross Margin | Show both metrics on Sales Analytics using SalesMockEntry only. Do not add them as required Dashboard KPI cards. |
 
-| ID | Topic | Current recommendation | Status | Affected requirements |
-|---|---|---|---|---|
-| D-01 | Inventory valuation method | Moving Weighted Average Cost. It handles different invoice prices without lot-level stock tracking. | Requires approval | FR-04, inventory value KPI, Stock OUT cost, related data fields |
-| D-02 | Default minimum stock | Default to zero. Allow a user-defined threshold per Product. | Proposed | Product creation, low-stock status and counts |
-| D-03 | Zero selling price | Allow zero only when the Product is intentionally free. Keep `null` for a price that has not been set. | Proposed | Product validation and price display |
-| D-04 | Opening stock cost | Require a known acquisition cost per unit when opening quantity is greater than zero. Allow supplier to remain unknown. | Proposed | Product creation, opening transaction, inventory valuation |
-| D-05 | Invoice-level adjustments | Proposed MVP rule: record unit price from each invoice line; do not support separate invoice-level discount, tax, shipping, or other charge allocation in the MVP. Confirm whether the entered line price is the effective cost for valuation. | Requires approval | Purchase Invoice form, line price meaning, inventory valuation |
-| D-06 | Stock OUT reasons | Use `DAMAGE`, `INTERNAL_USE`, `ADJUSTMENT`, and `OTHER`. Do not include `SALE`. | Proposed | Stock OUT form and transaction model |
-| D-07 | Posted invoice correction | Keep posted invoices immutable. Exclude edit, delete, void, and reversal actions from the MVP. Revisit a linked stock-and-cost reversal workflow later. | Requires approval | Purchase Invoice details and correction workflow |
-| D-08 | Inventory transaction correction | Proposed MVP rule: do not edit, delete, or reverse posted inventory transactions. Defer a dedicated stock-adjustment/reversal workflow. Do not use a fake Purchase Invoice to correct a Stock OUT error. | Proposed | Inventory transaction integrity and error recovery |
+### 17.1. Implementation Constraints
 
-### 17.2. Blocking Dependencies
-
-- Do not finalize inventory valuation or display Estimated Inventory Value until D-01, D-04, and D-05 are approved.
-- Do not finalize the zero-selling-price validation until D-03 is approved.
-- Do not finalize the initial minimum-stock default until D-02 is approved.
-- Do not finalize the Stock OUT reason options until D-06 is approved.
-- Do not add invoice edit, delete, void, or reversal controls until D-07 is approved.
-- Do not add a general inventory transaction correction or reversal control until D-08 is approved.
-
-### 17.3. Non-Blocking Display Decision
-
-Gross Profit and Gross Margin formulas and mock data fields are defined in this document. The final placement of these metrics as visible MVP cards must be confirmed during product-owner review. Their placement does not change inventory or purchase-invoice behavior.
+- The MVP has no post-posting correction workflow for Purchase Invoices or inventory transactions. This is a deliberate limitation, not an unresolved decision.
+- The UI must show a review and confirmation step before posting a Purchase Invoice or Stock OUT.
+- MWAC uses only recorded opening-stock costs and invoice-line prices. It excludes invoice-level charges that the MVP does not capture.
+- Gross Profit and Gross Margin are simulated metrics. They are not actual business profit figures.
+- Any change to these rules requires updates to this document, the PRD, and the UI/UX Specification.
 
 ## 18. Definition of Done for This Document
 
@@ -950,26 +965,29 @@ Gross Profit and Gross Margin formulas and mock data fields are defined in this 
 - [x] Purchase invoice posting creates Stock IN transactions.
 - [x] Product, invoice, transaction, and sales mock concepts are separated.
 - [x] Historical data and deletion rules are defined.
-- [ ] D-01 through D-08 are approved or explicitly deferred from the MVP.
-- [ ] PRD and UI/UX Specification pass cross-document traceability review.
-- [ ] Acceptance scenarios pass final product-owner review.
+- [x] D-01 through D-09 are approved and recorded.
+- [x] Inventory valuation and rounding are defined.
+- [x] Opening stock cost and invoice-line cost rules are defined.
+- [x] Stock OUT reasons and immutability rules are defined.
+- [x] PRD and UI/UX traceability has been updated.
+- [x] Cross-document terminology and decision status have been reviewed.
 
 ## 19. Document Control
 
 | Property | Value |
 |---|---|
 | Document | Storix — Business Rules & Data Model |
-| Version | 1.3 |
-| Status | Draft for cross-document review — not approved for implementation |
+| Version | 1.4 |
+| Status | Approved for Frontend Architecture |
 | Last Updated | 2026-11-11 |
 | Primary Reference | `docs/PRD.md` |
 | Related Reference | `docs/UI_UX_SPECIFICATION.md` |
-| Next Step | Resolve D-01 through D-08, then complete the final cross-document review. |
+| Next Step | Begin Frontend Architecture. Business rules are fixed for the MVP unless a documented product change is approved. |
 
 ## 20. Change Log
 
 | Version | Date | Changes |
 |---|---|---|
-| 1.3 | 2026-11-11 | Reorganized the document as the business-rule source of truth. Clarified purchase invoice posting, immutable history, price concepts, inventory valuation dependencies, deletion behavior, data persistence, and the seven open decisions. |
+| 1.4 | 2026-11-11 | Applied product-owner approval for D-01 through D-09. Finalized MWAC valuation and rounding, minimum-stock default, zero selling-price semantics, opening-stock cost, invoice-line cost basis, Stock OUT reasons, immutable posted records, and Sales Analytics profit metrics. Removed all open-decision gates. |
 | 1.2 | 2026-11-11 | Added invoice-based purchase prices, PurchaseInvoice and PurchaseInvoiceItem, latest purchase price per product-supplier pair, and purchase invoice capture as part of Stock IN. |
 | 1.1 | 2026-11-11 | Applied IRT currency, many-to-many product relationships, and count-based stock quantity decisions. |

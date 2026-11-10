@@ -1,8 +1,8 @@
 # Storix — UI/UX Specification
 
 **Document:** UI/UX Specification  
-**Version:** 1.2  
-**Status:** Draft for cross-document review — not approved for implementation  
+**Version:** 1.3  
+**Status:** Approved for Frontend Architecture  
 **Last Updated:** 2026-11-11  
 **Primary Reference:** [`PRD.md`](./PRD.md)  
 **Business Rules:** [`BUSINESS_RULES_AND_DATA_MODEL.md`](./BUSINESS_RULES_AND_DATA_MODEL.md)
@@ -102,9 +102,9 @@ Do not show these as implemented MVP features:
 - Purchase order management.
 - Supplier balances or payments.
 - Shipment management.
-- Invoice-level tax, discount, shipping, or other charge allocation until D-05 is approved.
-- Posted Purchase Invoice edit, delete, void, or reversal actions until D-07 is approved.
-- General inventory transaction edit, delete, or reversal actions until D-08 is approved.
+- Invoice-level discount, tax, shipping, or other charge capture and allocation.
+- Posted Purchase Invoice edit, delete, void, and reversal actions.
+- General inventory transaction edit, delete, undo, adjustment, and reversal actions.
 - Authentication, user profiles, and role management.
 - Multi-warehouse workflows.
 - Barcode scanning.
@@ -186,9 +186,9 @@ Display these inventory metrics:
 - Total Products.
 - Total Units in Stock.
 - Low-Stock Products.
-- Estimated Inventory Value only after D-01, D-04, and D-05 are approved.
+- Estimated Inventory Value, calculated from the MWAC carrying value for active Products.
 
-For Estimated Inventory Value, use a clear unavailable or hidden state while its calculation is blocked. Never display zero when the cost is unknown.
+Label Estimated Inventory Value as the estimated acquisition cost of current stock. It uses recorded opening-stock costs and invoice-line unit prices. Show an unavailable state only if stored data fails validation or a required cost is missing; never substitute zero for unknown cost.
 
 ### 5.3. Sales Summary and Trend
 
@@ -239,7 +239,7 @@ Display:
 - Sales quantity for the selected date range.
 - Sales revenue for the selected date range.
 - Product performance comparisons.
-- Gross Profit and Gross Margin only after the product owner confirms their visible inclusion in the MVP.
+- Gross Profit and Gross Margin, calculated from SalesMockEntry data only.
 
 Use the definitions and formulas in Business Rules. Do not use current Product selling price or Stock OUT transactions to build historical sales totals.
 
@@ -339,16 +339,16 @@ The form must include:
 | Package description | Optional. Describes one countable item/package. |
 | Categories | Multi-select. Zero, one, or multiple categories are allowed. |
 | Suppliers | Multi-select. Zero, one, or multiple suppliers are allowed. |
-| Selling price | Integer toman value or Not set. Zero behavior depends on D-03. |
-| Minimum stock | Non-negative whole number. Default depends on D-02. |
+| Selling price | Optional integer-toman value. `0` means Free; blank means Not set. Reject negative and decimal values. |
+| Minimum stock | Non-negative whole number. Default: `0`. |
 | Stock unit | Fixed to `عدد`. Do not show an editable unit selector. |
 | Opening stock | Non-negative whole number. Default is zero. |
-| Opening unit cost | Show when opening stock is greater than zero, subject to D-04. |
+| Opening unit cost | Required when opening stock is greater than zero. Must be a known non-negative integer-toman amount per unit. |
 | Opening supplier | Optional when known; must be linked to the Product if selected. |
 
 Do not provide a direct editable current-stock field. Opening stock is a one-time initial movement.
 
-When opening stock is greater than zero, explain that saving the Product will also create one opening-stock transaction. Apply the final cost requirement only after D-04 is approved.
+When opening stock is greater than zero, explain that saving the Product will also create one opening-stock transaction. Require a known acquisition cost. Supplier is optional.
 
 If saving the Product or opening transaction fails, keep the form open and do not report success.
 
@@ -503,7 +503,7 @@ Suggested columns:
 | Invoice Number | Supplier invoice number, or `—`. |
 | Supplier | Supplier name snapshot. |
 | Items | Number of product lines. |
-| Products Subtotal | Sum of line amounts before any invoice-level adjustments. Do not label as final payable total while D-05 is open. |
+| Recorded Purchase Subtotal | Sum of invoice line amounts. This is not the supplier’s final payable amount because the MVP does not capture invoice-level charges. |
 | Recorded At | Date/time when Storix posted the invoice. |
 | Action | Open read-only details. |
 
@@ -533,8 +533,8 @@ Rules:
 2. Do not allow the same Product twice on one invoice.
 3. Only show Products linked to the selected Supplier.
 4. If a needed Product is not linked, provide a clear path to add the Product-Supplier link before posting. Do not silently create a relationship.
-5. Do not include invoice-level discounts, taxes, shipping, or other charges until D-05 is approved.
-6. Label the sum of line amounts as a product subtotal, not as final invoice payable amount.
+5. Do not include invoice-level discount, tax, shipping, or other charge fields in the MVP.
+6. Label the sum of line amounts as `Recorded Purchase Subtotal`, not as the supplier’s final payable amount. Explain that this subtotal excludes invoice-level charges not captured by Storix.
 7. Show a clear summary of the stock quantities that will be received.
 
 ### 10.4. Posting Confirmation
@@ -579,9 +579,9 @@ Show:
 - Note, when available.
 - Product lines with product-name snapshot, SKU snapshot, package snapshot, quantity, unit purchase price, and line amount.
 - Total units received.
-- Product subtotal before any invoice-level adjustments.
+- Recorded Purchase Subtotal. Explain that it excludes invoice-level charges not captured by Storix.
 
-Posted invoice details are read-only in this draft. Do not show Edit, Delete, Void, or Reverse actions until D-07 is approved.
+Posted invoice details are read-only. Do not show Edit, Delete, Void, or Reverse actions. Show a warning before the final posting confirmation because posted invoices cannot be corrected in the MVP.
 
 ## 11. Stock OUT
 
@@ -598,21 +598,18 @@ The form must include:
 - Product selection.
 - Current available quantity.
 - Quantity to remove.
-- Reason, using the approved D-06 values.
+- Required reason.
 - Optional note.
 
-Proposed reason values are:
+Allowed reasons:
 
-| Value | Display label |
-|---|---|
-| `DAMAGE` | Damaged |
-| `INTERNAL_USE` | Internal use |
-| `ADJUSTMENT` | Stock adjustment |
-| `OTHER` | Other |
+| Value | Display label | Rule |
+|---|---|---|
+| `DAMAGE` | Damaged | The item is damaged or unusable. |
+| `INTERNAL_USE` | Internal use | The item is used by the business and is not sold. |
+| `OTHER` | Other | Require a note when selected. |
 
-Do not include `SALE`.
-
-The list above remains proposed until D-06 is approved. The reason field and its final labels must not be treated as final before approval.
+Do not include `SALE` or `ADJUSTMENT`. Stock OUT is not a sale and is not a stock-correction tool.
 
 ### 11.3. Validation
 
@@ -620,17 +617,20 @@ The list above remains proposed until D-06 is approved. The reason field and its
 - Quantity must be a positive whole number.
 - Quantity must not exceed available stock.
 - Resulting stock must not be negative.
-- Reason is required after D-06 is approved.
-- Note is optional.
+- Reason is required and must be one of the three approved values.
+- A note is required when reason is `OTHER`; otherwise it is optional.
 
 ### 11.4. Successful Submission
 
-1. Decrease the Product stock quantity.
-2. Create exactly one Stock OUT transaction.
-3. Keep the transaction immutable.
-4. Show success feedback.
-5. Update visible stock and transaction lists.
-6. Do not change Sales Analytics data.
+1. Show a review state with Product, available quantity, quantity to remove, reason, note, and resulting stock.
+2. Require explicit user confirmation before posting.
+3. Decrease the Product stock quantity.
+4. Create exactly one immutable Stock OUT transaction.
+5. Calculate and store the cost removed using MWAC and the approved rounding rule.
+6. Show success feedback and update visible stock and transaction lists.
+7. Do not change Sales Analytics data.
+
+After posting, transaction details are read-only. Do not provide edit, delete, undo, adjustment, or reversal actions in the MVP. Explain before confirmation that a posted Stock OUT cannot be corrected in this version.
 
 On failure, keep the form open and explain the problem. Do not change stock or create a transaction.
 
@@ -836,7 +836,7 @@ Let `Q` be current stock and `M` be the Product minimum stock threshold.
 
 Dashboard Low-Stock Products uses `Q <= M` and includes zero-stock Products. The visible status for zero stock remains `Out of Stock`.
 
-The default minimum stock value is pending D-02.
+The default minimum stock value is `0`. The user can set a non-negative whole-number threshold for each Product.
 
 ### 16.2. Numeric Values
 
@@ -855,14 +855,13 @@ The default minimum stock value is pending D-02.
 - Show purchase price with its Supplier and invoice date.
 - Do not show a single ambiguous latest purchase price for a Product with multiple Suppliers.
 - Show `Not set` for a null selling price.
-- Do not settle the zero-price validation until D-03 is approved.
+- Display `Not set` for a null selling price and `Free` for a zero selling price.
 
 ### 16.4. Purchase Invoice Amounts
 
 - Display unit purchase price and line amount.
-- Label a sum of invoice line amounts as `Products Subtotal` or equivalent.
-- Do not label that subtotal as final payable amount until D-05 is approved.
-- Do not show invoice tax, discount, shipping, or additional charge fields before their rules are approved.
+- Label the sum of invoice line amounts `Recorded Purchase Subtotal`; do not present it as the supplier’s final payable amount.
+- Do not show invoice tax, discount, shipping, or additional charge fields. Explain that these amounts are not captured or allocated in the MVP.
 
 ### 16.5. Sales Data
 
@@ -871,7 +870,7 @@ The default minimum stock value is pending D-02.
 - Do not show Stock OUT as a sale.
 - Use one selected date range across all sales widgets.
 - Use the Business Rules formulas for any displayed derived metrics.
-- Do not display Gross Profit or Gross Margin as committed MVP cards until their visible inclusion is confirmed.
+- Display Gross Profit and Gross Margin on Sales Analytics. Do not add them as required Dashboard KPI cards. Clearly label them as simulated metrics.
 
 ### 16.6. Relative Purchase-Price Age
 
@@ -915,7 +914,7 @@ Every data-driven page must define applicable states:
 | Save success | Confirm only after persistence succeeds. |
 | Save failure | Preserve user input and explain that data was not saved. |
 | Disabled action | Explain the business rule that prevents the action. |
-| Unavailable calculation | Explain that the calculation is not available until its business rule is approved. |
+| Unavailable calculation | Explain which required source data is missing or invalid. Do not show a fabricated value or silently substitute zero. |
 
 Do not display a fake loading state for an operation that completes synchronously.
 
@@ -941,28 +940,30 @@ This section records UI constraints. It does not make final architecture decisio
 - Do not place sample records directly inside reusable UI components.
 - Keep the interface independent from the LocalStorage implementation details.
 - Use one shared money-formatting rule and one shared quantity-formatting rule.
-- Do not implement a business calculation that is still marked as pending in Business Rules.
+- Implement only calculations defined in Business Rules. Do not invent or infer business formulas in the UI layer.
 - Final choices for routing, state management, forms, validation, data access, and folder structure belong to Frontend Architecture.
 
-## 21. Decisions Required Before Final Implementation
+## 21. Approved Product Decisions Reflected in UI
 
-These items are open in Business Rules. This UI document records their impact but does not approve them.
+The product owner approved D-01 through D-09 on 2026-11-11. This document implements their user-facing effects; the complete rules are in [`BUSINESS_RULES_AND_DATA_MODEL.md`](./BUSINESS_RULES_AND_DATA_MODEL.md).
 
-| ID | Topic | UI impact | Required action |
-|---|---|---|---|
-| D-01 | Inventory valuation method | Estimated Inventory Value KPI and Stock OUT cost details | Hide or mark the calculation unavailable until approved. |
-| D-02 | Default minimum stock | Product create/edit default and low-stock behavior | Confirm the default value. |
-| D-03 | Zero selling price | Product selling-price validation and display | Confirm whether zero is allowed only for intentionally free products. |
-| D-04 | Opening stock cost | Product creation form and opening transaction details | Confirm whether positive opening stock requires a unit acquisition cost. |
-| D-05 | Invoice-level adjustments | Purchase Invoice form, line-price wording, and cost values | Confirm how discounts, taxes, shipping, and other charges are handled. |
-| D-06 | Stock OUT reasons | Stock OUT reason field and validation | Confirm the allowed reason list. |
-| D-07 | Purchase Invoice correction | Purchase Invoice details actions | Confirm whether posted invoices are read-only in the MVP or need a reversal workflow. |
-| D-08 | Inventory transaction correction | Transaction details and stock correction actions | Confirm whether the MVP excludes transaction correction or needs a dedicated adjustment/reversal workflow. Do not use a manual Stock IN to reverse Stock OUT. |
+| ID | Approved rule | Required UI behavior |
+|---|---|---|
+| D-01 | MWAC inventory valuation with round-half-up for partial Stock OUT cost. | Show Estimated Inventory Value on Dashboard. Show cost details where relevant. Explain that it is an estimated recorded acquisition cost. |
+| D-02 | Minimum stock defaults to zero and is configurable per Product. | Pre-fill `0`; allow a non-negative whole number. Use `Q <= M` for low-stock count. |
+| D-03 | Zero selling price is valid and means Free; null means Not set. | Show `Free` for zero and `Not set` for blank. |
+| D-04 | Positive opening stock requires a known unit acquisition cost. | Require and validate opening unit cost when opening quantity is greater than zero. Supplier remains optional. |
+| D-05 | No invoice-level discount, tax, shipping, or other charge capture/allocation. Invoice-line unit price is the cost basis. | Show unit price and `Recorded Purchase Subtotal`; explain excluded charges. |
+| D-06 | Stock OUT reasons: DAMAGE, INTERNAL_USE, OTHER. OTHER requires a note. | Show exactly these choices. Do not show SALE or ADJUSTMENT. |
+| D-07 | Posted Purchase Invoices are immutable. | Show a review and warning before posting. Details are read-only after posting. |
+| D-08 | Posted inventory transactions are immutable. | Show a review and warning before Stock OUT. Details are read-only after posting. |
+| D-09 | Gross Profit and Gross Margin appear in Sales Analytics using mock data only. | Display both metrics on Sales Analytics, not as required Dashboard KPI cards. |
 
-Other display choices:
+Known MVP limitations that must be clear to users:
 
-- Confirm whether Gross Profit and Gross Margin appear as visible Sales Analytics metrics.
-- Confirm final pagination defaults during UI design. These defaults do not change business data rules.
+- Storix does not capture invoice-level charges. The inventory-cost estimate uses recorded line prices and opening-stock costs only.
+- Users cannot correct a posted Purchase Invoice or inventory transaction in the MVP.
+- Gross Profit and Gross Margin are simulated metrics. They are not actual net profit or complete business profitability.
 
 ## 22. UI/UX Acceptance Criteria
 
@@ -983,13 +984,13 @@ The UI/UX work for the MVP is complete when the following items are satisfied.
 - [ ] Dashboard displays Total Products.
 - [ ] Dashboard displays Total Units in Stock.
 - [ ] Dashboard displays Low-Stock Products using the Business Rules threshold calculation.
-- [ ] Estimated Inventory Value is hidden or marked unavailable until D-01, D-04, and D-05 are approved.
+- [ ] Dashboard displays Estimated Inventory Value using the MWAC carrying value and recorded acquisition costs.
 - [ ] Dashboard displays sales charts using mock data.
 - [ ] Dashboard displays recent inventory transactions.
 - [ ] Dashboard displays best-selling products using mock data.
 - [ ] Sales Analytics displays sales quantity and sales revenue for a selected date range.
 - [ ] Sales Analytics displays charts and product comparisons.
-- [ ] Gross Profit and Gross Margin appear only after product-owner confirmation.
+- [ ] Gross Profit and Gross Margin appear on Sales Analytics and use SalesMockEntry data only.
 - [ ] Sales mock data is clearly identified and remains separate from inventory transactions.
 - [ ] No real order, customer, sales invoice, or payment workflow is presented as an MVP feature.
 
@@ -1002,6 +1003,9 @@ The UI/UX work for the MVP is complete when the following items are satisfied.
 - [ ] Product form supports multiple supplier links.
 - [ ] Product stock unit is fixed and displayed as `عدد`.
 - [ ] Product details show current stock and supplier-specific latest purchase-price history.
+- [ ] Minimum stock defaults to zero.
+- [ ] Selling price zero displays as `Free`; a null price displays as `Not set`.
+- [ ] Positive opening stock requires a known unit acquisition cost.
 - [ ] Product details show `No recorded purchase` when a supplier has no invoice history.
 - [ ] Category deletion is blocked while Product links exist.
 - [ ] Supplier details show related Products and their latest supplier-specific purchase prices.
@@ -1018,26 +1022,31 @@ The UI/UX work for the MVP is complete when the following items are satisfied.
 - [ ] The Product must be linked to the selected Supplier.
 - [ ] Duplicate Product lines are prevented.
 - [ ] The form clearly shows the total stock quantity that will be received.
-- [ ] The line sum is labelled as a product subtotal, not a final payable total while D-05 is open.
+- [ ] The line sum is labelled `Recorded Purchase Subtotal`, not as the supplier’s final payable amount.
+- [ ] The UI explains that invoice-level charges are not captured or allocated.
 - [ ] Posting confirmation explains the inventory effect.
 - [ ] Each invoice line creates exactly one Stock IN transaction.
 - [ ] Invoice, lines, transactions, and stock changes are saved as one logical operation.
 - [ ] A persistence failure does not leave partial data.
-- [ ] Posted invoice details are read-only until D-07 is approved.
+- [ ] Posted invoice details are read-only, with no edit, delete, void, or reverse actions.
+- [ ] A warning and review step appear before posting.
 
 ### 22.5. Stock OUT and Transactions
 
 - [ ] Stock OUT form shows the selected Product and current available quantity.
 - [ ] Stock OUT quantity must be a positive whole number.
 - [ ] Quantity greater than available stock is rejected.
-- [ ] Stock OUT reason follows the approved D-06 values.
+- [ ] Stock OUT reason is required and offers only `DAMAGE`, `INTERNAL_USE`, and `OTHER`.
+- [ ] Selecting `OTHER` requires a note.
+- [ ] A review and confirmation step appears before posting.
+- [ ] Posted transactions are read-only and have no edit, delete, undo, adjustment, or reversal action.
 - [ ] Successful Stock OUT creates exactly one transaction.
 - [ ] Stock OUT does not update Sales Analytics.
 - [ ] Transaction history supports filtering by type and Product.
 - [ ] Transaction details show quantity before and after the movement.
 - [ ] Invoice-based Stock IN details link to their source Purchase Invoice.
 - [ ] Historical transaction details remain readable after Product deletion.
-- [ ] Transaction details do not show unapproved edit, delete, undo, or reversal actions.
+- [ ] Transaction details do not show edit, delete, undo, adjustment, or reversal actions.
 
 ### 22.6. Settings, Feedback, and Quality
 
@@ -1048,20 +1057,22 @@ The UI/UX work for the MVP is complete when the following items are satisfied.
 - [ ] Loading, empty, error, success, and disabled states are handled where applicable.
 - [ ] Tables and charts remain readable at supported screen sizes.
 - [ ] Keyboard focus, labels, and status text are accessible.
+- [ ] MWAC inventory value uses the approved rules and recorded acquisition costs.
+- [ ] If required cost data is missing or invalid, show an unavailable state and explain the data problem.
 - [ ] No undefined business calculation is presented as a confirmed value.
 
 ## 23. PRD Requirement Traceability
 
 | PRD requirement | UI area | Coverage |
 |---|---|---|
-| FR-01 to FR-07 | Dashboard | Inventory KPIs, recent transactions, and sales mock-data widgets. FR-04 is gated by D-01, D-04, and D-05. |
+| FR-01 to FR-07 | Dashboard | Inventory KPIs, recent transactions, and sales mock-data widgets. FR-04 uses the approved MWAC method. |
 | FR-08 to FR-16, FR-46 to FR-51 | Products | Product CRUD, list controls, package description, selling price, multiple categories/suppliers, and supplier-specific latest prices. |
 | FR-17 to FR-20 | Categories | Category CRUD and relationship-aware deletion. |
 | FR-21 to FR-25, FR-52 | Suppliers | Supplier CRUD, related Products, and purchase-price history. |
 | FR-26, FR-53 to FR-60 | Purchase Invoices | Invoice capture, validation, posting, Stock IN transaction creation, and read-only history. |
-| FR-27 to FR-31, FR-61 to FR-62 | Stock OUT and Product forms | Stock OUT, threshold behavior, opening cost, and reasons. Some behavior depends on D-02, D-04, and D-06. |
+| FR-27 to FR-31, FR-61 to FR-62 | Stock OUT and Product forms | Stock OUT reasons, minimum-stock threshold, opening acquisition cost, and validation follow the approved rules. |
 | FR-32, FR-33 to FR-38, FR-63 | Products and Transactions | Opening stock and full transaction history. |
-| FR-39 to FR-43, FR-64 to FR-67 | Sales Analytics | Sales mock data, date range, charts, comparisons, and optional derived metrics. |
+| FR-39 to FR-43, FR-64 to FR-67 | Sales Analytics | Sales mock data, date range, charts, comparisons, Gross Profit, and Gross Margin. |
 | FR-44 to FR-45 | Settings | Basic local display preferences. |
 
 NFR-01 to NFR-12 are covered by the application shell, responsive layouts, forms, tables, validation, persistence behavior, accessibility, feedback, and historical traceability rules.
@@ -1075,7 +1086,7 @@ The following items are outside the current MVP. They may be reviewed in a futur
 - Sales invoices and payment processing.
 - Purchase order management.
 - Supplier payments and accounts payable.
-- Purchase invoice correction and reversal workflow, unless D-07 brings a limited version into the MVP.
+- Purchase invoice correction and reversal workflow.
 - Multiple warehouses.
 - Barcode scanning.
 - Lot, batch, expiry, and serial-number tracking.
@@ -1092,16 +1103,16 @@ Their presence in this section does not make them MVP commitments.
 | Property | Value |
 |---|---|
 | Document | Storix UI/UX Specification |
-| Version | 1.2 |
-| Status | Draft for cross-document review — not approved for implementation |
+| Version | 1.3 |
+| Status | Approved for Frontend Architecture |
 | Last Updated | 2026-11-11 |
 | Primary Reference | `docs/PRD.md` |
 | Business Rules | `docs/BUSINESS_RULES_AND_DATA_MODEL.md` |
-| Next Step | Resolve D-01 through D-08, then complete final UI/UX and cross-document review. |
+| Next Step | Begin Frontend Architecture using the approved MVP baseline. |
 
 ## 26. Change Log
 
 | Version | Date | Changes |
 |---|---|---|
-| 1.2 | 2026-11-11 | Added Purchase Invoice pages and Stock IN flow, product pricing and package fields, multi-select category and supplier relationships, supplier-specific purchase-price display, whole-number quantity rules, invoice-based transaction history, deletion constraints, and decision gates. Aligned navigation, forms, acceptance criteria, and PRD traceability. |
+| 1.3 | 2026-11-11 | Applied approved D-01 through D-09. Finalized Dashboard inventory valuation, Product price and threshold behavior, opening-stock cost input, Purchase Invoice totals and warnings, Stock OUT reasons and confirmation, immutable posted records, Sales Analytics profit metrics, acceptance criteria, and decision references. |
 | 1.1 | 2026-11-10 | Initial UI/UX specification aligned with PRD v2.0. |

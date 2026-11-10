@@ -1,8 +1,8 @@
 # Storix
 ## Product Requirements Document (PRD)
 
-**Version:** 2.1  
-**Status:** Draft for cross-document review — not approved for implementation  
+**Version:** 2.2  
+**Status:** Approved for Frontend Architecture  
 **Last Updated:** 2026-11-11  
 **Related Documents:** [`BUSINESS_RULES_AND_DATA_MODEL.md`](./BUSINESS_RULES_AND_DATA_MODEL.md) · [`UI_UX_SPECIFICATION.md`](./UI_UX_SPECIFICATION.md)
 
@@ -89,7 +89,7 @@ It does not include registration, authentication, multiple accounts, roles, perm
 
 | Module | Scope |
 |---|---|
-| Dashboard | Inventory summary, stock status, recent transactions, and selected sales indicators. Inventory value is conditional on approved valuation rules. |
+| Dashboard | Inventory summary, stock status, estimated inventory value, recent transactions, and selected sales indicators. |
 | Products | Create, view, update, search, filter, sort, and delete products. Show selling price and package description. |
 | Categories | Create, view, update, assign, and delete categories, subject to relationship rules. |
 | Suppliers | Create, view, update, and delete supplier records, subject to relationship and history rules. |
@@ -140,8 +140,8 @@ Purchase Invoice capture is a limited inventory-receipt feature. It is not a ful
 
 - Purchase order matching.
 - Full tax and accounting treatment.
-- Invoice-level discount, tax, shipping, or other charge allocation until D-05 is approved.
-- Posted purchase invoice editing, deletion, voiding, or reversal until D-07 is approved.
+- Invoice-level discount, tax, shipping, and other charge capture or allocation.
+- Posted purchase invoice editing, deletion, voiding, and reversal.
 
 **Advanced features**
 
@@ -199,7 +199,7 @@ The MVP Purchase Invoice flow must:
 - Prevent a product from appearing more than once on the same invoice.
 - Create exactly one Stock IN transaction for each invoice line.
 - Save the invoice, lines, transactions, and stock changes as one logical operation.
-- Keep posted invoice history read-only until an approved correction workflow exists.
+- Keep posted Purchase Invoice history read-only. The MVP does not provide an invoice correction workflow.
 
 This feature records received stock and entered acquisition prices. It does not create purchase orders, payments, supplier balances, or accounting entries.
 
@@ -230,7 +230,7 @@ Sales mock data must remain separate from inventory transactions. Stock OUT does
 
 ## 5. Functional Requirements
 
-Each requirement has a stable ID. The status column identifies whether the behavior is ready for implementation or depends on an open decision.
+Each requirement has a stable ID. The status column identifies whether the behavior is defined for the approved MVP baseline.
 
 ### 5.1. Dashboard
 
@@ -239,7 +239,7 @@ Each requirement has a stable ID. The status column identifies whether the behav
 | FR-01 | Display the total number of active products. | Defined |
 | FR-02 | Display the total number of stock units across active products. | Defined |
 | FR-03 | Display the number of low-stock products, including products with zero stock when they meet the threshold rule. | Defined |
-| FR-04 | Display estimated inventory value using the approved inventory valuation method. | Blocked by D-01, D-04, and D-05 |
+| FR-04 | Display estimated inventory value using Moving Weighted Average Cost and recorded acquisition costs. | Defined |
 | FR-05 | Display sales charts using sales mock data. | Defined |
 | FR-06 | Display recent inventory transactions. | Defined |
 | FR-07 | Display best-selling products using sales mock data. | Defined |
@@ -258,7 +258,7 @@ Each requirement has a stable ID. The status column identifies whether the behav
 | FR-15 | Sort Products by supported fields. | Defined |
 | FR-16 | Paginate long Product lists. | Defined |
 | FR-46 | Store and display an optional package description for one stock unit. | Defined |
-| FR-47 | Store the current selling price for one stock unit. | Defined; zero-price validation depends on D-03 |
+| FR-47 | Store the current selling price for one stock unit. `null` means Not set; zero means Free. | Defined |
 | FR-48 | Allow the user to assign zero, one, or multiple categories to a Product. | Defined |
 | FR-49 | Allow the user to link a Product to zero, one, or multiple Suppliers. | Defined |
 | FR-50 | Display the latest recorded purchase price, invoice date, and relative age for each linked Supplier. | Defined |
@@ -289,22 +289,22 @@ Each requirement has a stable ID. The status column identifies whether the behav
 | ID | Requirement | Status |
 |---|---|---|
 | FR-26 | Record incoming stock by posting a Purchase Invoice. A separate manual Stock IN form is not part of the MVP. | Defined |
-| FR-27 | Record Stock OUT for a non-sale reason. | Reason values depend on D-06 |
+| FR-27 | Record Stock OUT for `DAMAGE`, `INTERNAL_USE`, or `OTHER`. Require a note for `OTHER`. | Defined |
 | FR-28 | Display current stock quantity for each Product. | Defined |
 | FR-29 | Prevent Stock OUT operations that exceed available stock. | Defined |
 | FR-30 | Allow a user note on Stock OUT transactions and Purchase Invoices. | Defined |
-| FR-31 | Identify Products at or below their minimum stock level. | Default threshold depends on D-02 |
-| FR-32 | Support opening stock quantity when a Product is created. | Opening-cost behavior depends on D-04 |
+| FR-31 | Identify Products at or below their minimum stock level. New Products default to a threshold of zero. | Defined |
+| FR-32 | Support opening stock quantity when a Product is created. Positive opening stock requires a known unit acquisition cost. | Defined |
 | FR-53 | Create a Purchase Invoice with one Supplier, invoice date, optional invoice number, optional note, and at least one line. | Defined |
 | FR-54 | Require each Purchase Invoice line to reference a Product linked to the selected Supplier. | Defined |
-| FR-55 | Record a positive whole-number quantity and a non-negative integer-toman unit purchase price on each invoice line. | Defined; price basis depends on D-05 |
+| FR-55 | Record a positive whole-number quantity and a non-negative integer-toman unit purchase price on each invoice line. Use that price as the acquisition-cost basis. | Defined |
 | FR-56 | Prevent duplicate Product lines within one Purchase Invoice. | Defined |
 | FR-57 | Create exactly one Stock IN transaction for each saved invoice line. | Defined |
 | FR-58 | Save the Purchase Invoice, its lines, its Stock IN transactions, and the resulting stock changes as one logical operation. | Defined |
 | FR-59 | Display a list and read-only details for posted Purchase Invoices. | Defined |
-| FR-60 | Keep posted Purchase Invoices and their lines immutable. | Edit/void behavior depends on D-07; read-only is the current proposal |
-| FR-61 | Show opening-stock acquisition cost when opening quantity is greater than zero. | Depends on D-04 |
-| FR-62 | Require a reason for each Stock OUT operation. | Reason values depend on D-06 |
+| FR-60 | Keep posted Purchase Invoices and their lines immutable. Do not provide edit, delete, void, or reversal actions in the MVP. | Defined |
+| FR-61 | Require and store a known, non-negative integer-toman unit acquisition cost when opening quantity is greater than zero. | Defined |
+| FR-62 | Require a Stock OUT reason. Allowed values are `DAMAGE`, `INTERNAL_USE`, and `OTHER`; `OTHER` requires a note. | Defined |
 
 ### 5.6. Transaction Management
 
@@ -330,7 +330,7 @@ Each requirement has a stable ID. The status column identifies whether the behav
 | FR-64 | Apply the same selected date range to all date-dependent Sales Analytics widgets. | Defined |
 | FR-65 | Clearly label Sales Analytics as simulated or sample data. | Defined |
 | FR-66 | Keep Sales Analytics independent from inventory transactions and Purchase Invoices. | Defined |
-| FR-67 | Display Gross Profit and Gross Margin as visible metrics. | Needs product-owner confirmation; formulas are defined in Business Rules |
+| FR-67 | Display Gross Profit and Gross Margin on Sales Analytics using SalesMockEntry data only. | Defined |
 
 ### 5.8. Settings
 
@@ -379,9 +379,10 @@ The detailed source for these rules is [`BUSINESS_RULES_AND_DATA_MODEL.md`](./BU
 3. Movement quantities are positive whole numbers.
 4. Incoming stock is recorded only through a Purchase Invoice.
 5. Each Purchase Invoice line creates exactly one Stock IN transaction.
-6. Stock OUT must not exceed available stock.
+6. Stock OUT must not exceed available stock and requires an approved non-sale reason.
 7. Stock OUT is not a sale and does not change Sales Analytics.
 8. Transactions and posted invoice lines are immutable in the MVP.
+9. MWAC determines inventory carrying value and Stock OUT cost.
 9. Product deletion is allowed only at zero stock. Historical transactions and invoice records remain available.
 10. Category and Supplier deletion must respect active links and historical invoice references.
 
@@ -393,7 +394,7 @@ The detailed source for these rules is [`BUSINESS_RULES_AND_DATA_MODEL.md`](./BU
 4. Purchase prices come from supplier invoice lines.
 5. Do not manually overwrite a latest purchase price.
 6. Do not show a price without supplier context when more than one supplier exists.
-7. Inventory valuation is not final until D-01, D-04, and D-05 are approved.
+7. Inventory valuation uses MWAC. Opening stock requires a known acquisition cost. Invoice-line unit prices are the recorded cost basis; invoice-level charges are not captured.
 
 ### 7.4. Sales Analytics Rules
 
@@ -466,7 +467,7 @@ Sales mock data may be static application data. It does not need to be stored in
 
 ## 10. MVP Acceptance Criteria
 
-The MVP must satisfy the scenarios below. Scenarios that depend on an open decision are marked as conditional and cannot pass final sign-off until the relevant decision is approved.
+The MVP must satisfy all scenarios below. These scenarios reflect the product-owner decisions recorded in Business Rules.
 
 ### 10.1. Product and Supplier Setup
 
@@ -476,7 +477,10 @@ The MVP must satisfy the scenarios below. Scenarios that depend on an open decis
 4. Assign the Product to more than one Category.
 5. Link the Product to both Suppliers.
 6. Verify the Product shows one count unit as `عدد`.
-7. Verify decimal quantities are rejected.
+7. Verify the default minimum stock threshold is `0`.
+8. Set a non-negative whole-number minimum stock threshold and verify it persists.
+9. Verify a selling price of `0` displays as `Free` and a null selling price displays as `Not set`.
+10. Verify decimal quantities and invalid prices are rejected.
 
 ### 10.2. Purchase Invoice and Stock Receipt
 
@@ -485,13 +489,15 @@ The MVP must satisfy the scenarios below. Scenarios that depend on an open decis
 3. Add a Keyboard line with quantity 20 and a unit purchase price.
 4. Add another Product line with a positive whole-number quantity.
 5. Save the invoice.
-6. Verify that every line creates exactly one Stock IN transaction.
-7. Verify the stock of each Product increases by its line quantity.
-8. Verify the invoice and all related transactions persist after refresh.
-9. Verify the latest purchase price view identifies Supplier A and the invoice date.
-10. Try to add a duplicate Product line. Verify the UI blocks it.
-11. Try to add a Product that is not linked to Supplier A. Verify the relationship must be created first.
-12. Simulate a persistence failure. Verify the invoice, lines, transactions, and stock changes are not partially saved.
+6. Verify the form has no invoice-level discount, tax, shipping, or other charge fields.
+7. Verify the line sum is labelled `Recorded Purchase Subtotal`.
+8. Verify that every line creates exactly one Stock IN transaction.
+9. Verify the stock of each Product increases by its line quantity.
+10. Verify the invoice and all related transactions persist after refresh.
+11. Verify the latest purchase price view identifies Supplier A and the invoice date.
+12. Try to add a duplicate Product line. Verify the UI blocks it.
+13. Try to add a Product that is not linked to Supplier A. Verify the relationship must be created first.
+14. Simulate a persistence failure. Verify the invoice, lines, transactions, and stock changes are not partially saved.
 
 ### 10.3. Supplier-Specific Price History
 
@@ -506,18 +512,19 @@ The MVP must satisfy the scenarios below. Scenarios that depend on an open decis
 
 1. Select a Product with available stock.
 2. Enter a positive whole-number quantity that is not greater than current stock.
-3. Select a reason after D-06 is approved.
+3. Select `DAMAGE`, `INTERNAL_USE`, or `OTHER`. If `OTHER` is selected, enter a note.
 4. Submit the operation.
 5. Verify current stock decreases and exactly one Stock OUT transaction is created.
 6. Attempt to remove more than the available quantity.
 7. Verify the invalid operation is rejected and stock remains unchanged.
 8. Verify Sales Analytics values do not change.
+9. Verify the cost removed uses MWAC, exact half values round up, and a full Stock OUT removes all remaining carrying value.
 
 ### 10.5. Opening Stock
 
 1. Create a Product with opening stock zero. Verify no transaction is created.
 2. Create a Product with positive opening stock.
-3. Apply the approved D-04 acquisition-cost rule.
+3. Enter a known, non-negative integer-toman unit acquisition cost.
 4. Verify exactly one OPENING_STOCK transaction is created.
 5. Verify Product creation and opening stock are saved together.
 
@@ -535,9 +542,17 @@ The MVP must satisfy the scenarios below. Scenarios that depend on an open decis
 3. Change a Product selling price. Verify historical mock revenue and cost remain unchanged.
 4. Record a Purchase Invoice and a Stock OUT. Verify neither operation changes sales mock data.
 5. Change the date range. Verify all date-dependent widgets use the same range.
-6. If Gross Profit and Gross Margin are approved for visible display, verify the formulas and zero-revenue behavior.
+6. Verify Gross Profit and Gross Margin are visible on Sales Analytics, use only mock data, and display `—` for Gross Margin when revenue is zero.
 
-### 10.8. Persistence and Recovery
+### 10.8. Posted Record Immutability
+
+1. Open a posted Purchase Invoice. Verify that its header and lines are read-only.
+2. Verify there are no edit, delete, void, or reverse actions for a posted Purchase Invoice.
+3. Open a posted inventory transaction. Verify its details are read-only.
+4. Verify there are no edit, delete, undo, adjustment, or reversal actions for a posted transaction.
+5. Verify the Stock OUT review step warns that the operation cannot be corrected after posting.
+
+### 10.9. Persistence and Recovery
 
 1. Refresh the browser after successful local changes.
 2. Verify supported data remains available.
@@ -546,24 +561,28 @@ The MVP must satisfy the scenarios below. Scenarios that depend on an open decis
 5. Simulate a failed write.
 6. Verify the previous persisted state remains intact and the UI shows an error.
 
-## 11. Open Decisions and Implementation Gates
+## 11. Approved Product Decisions and Implementation Constraints
 
-The following decisions remain open. Their recommendations are recorded in the Business Rules document. A recommendation is not an approval.
+The product owner approved D-01 through D-09 on 2026-11-11. These rules are part of the MVP baseline and are detailed in [`BUSINESS_RULES_AND_DATA_MODEL.md`](./BUSINESS_RULES_AND_DATA_MODEL.md).
 
-| ID | Decision | Impact | Gate |
-|---|---|---|---|
-| D-01 | Inventory valuation method | Inventory value and Stock OUT cost calculations | Blocks FR-04 and related cost calculations |
-| D-02 | Default minimum stock | Product creation and low-stock defaults | Blocks final default value only |
-| D-03 | Zero selling price | Product selling-price validation | Blocks final zero-price validation |
-| D-04 | Opening stock acquisition cost | Opening stock form and inventory valuation | Blocks final opening-cost behavior and FR-61 |
-| D-05 | Invoice-level discounts, taxes, shipping, and other charges | Meaning of effective unit cost and inventory valuation | Blocks final acquisition-cost basis and FR-04 |
-| D-06 | Stock OUT reason values | Stock OUT form validation | Blocks final reason options and FR-62 |
-| D-07 | Posted Purchase Invoice corrections | Edit, void, and reversal behavior | Blocks invoice correction workflow; posted invoices remain read-only in this draft |
-| D-08 | Inventory transaction correction | Whether users can reverse or adjust an already-posted inventory movement | Blocks any general transaction correction action; do not use a manual Stock IN to reverse Stock OUT |
+| ID | Approved decision | PRD impact |
+|---|---|---|
+| D-01 | Use Moving Weighted Average Cost (MWAC). Round partial Stock OUT cost to the nearest whole toman, with exact halves rounded up. A full Stock OUT removes the full carrying value. | FR-04 and Stock OUT cost. |
+| D-02 | Default minimum stock to `0`; allow a per-Product non-negative whole-number threshold. | FR-31 and low-stock metrics. |
+| D-03 | Selling price `0` means Free; `null` means Not set. | FR-47 and Product validation. |
+| D-04 | Positive opening stock requires a known non-negative integer-toman unit acquisition cost. Supplier is optional. | FR-32 and FR-61. |
+| D-05 | Do not capture or allocate invoice-level discounts, taxes, shipping, or other charges. Invoice-line unit price is the MWAC cost basis. | FR-04, FR-55, Purchase Invoice totals. |
+| D-06 | Stock OUT reasons are `DAMAGE`, `INTERNAL_USE`, and `OTHER`; `OTHER` requires a note. No `SALE` or `ADJUSTMENT`. | FR-27 and FR-62. |
+| D-07 | Posted Purchase Invoices are immutable. No edit, delete, void, or reversal actions in the MVP. | FR-59 and FR-60. |
+| D-08 | Posted inventory transactions are immutable. No edit, delete, undo, adjustment, or reversal actions in the MVP. | FR-33 to FR-38. |
+| D-09 | Show Gross Profit and Gross Margin on Sales Analytics. Use mock data only; do not add them as required Dashboard KPI cards. | FR-67. |
 
-**Implementation rule:** Do not implement a blocked calculation or workflow as if its decision were approved. Keep the affected UI state hidden, disabled with an explanation, or clearly marked unavailable.
+These decisions are approved. They are not implementation gates. The following limitations must remain visible in the product:
 
-The current draft keeps inventory transactions immutable and does not provide a general correction or reversal workflow. This avoids a conflict with the rule that incoming stock can only be created by posting a Purchase Invoice. A dedicated stock adjustment or reversal workflow needs approval under D-08.
+- Inventory cost estimates exclude invoice-level charges that Storix does not capture.
+- Users cannot correct a posted Purchase Invoice or inventory transaction in the MVP. The UI must require a review and explicit confirmation before posting.
+- Gross Profit and Gross Margin are simulated metrics. They are not actual net profit or complete business profitability.
+- Do not add sales orders, customers, real sales, sales invoices, or payments to the MVP.
 
 ## 12. Technology Direction
 
@@ -603,16 +622,16 @@ The MVP is successful when:
 | Property | Value |
 |---|---|
 | Document | Storix Product Requirements Document |
-| Version | 2.1 |
-| Status | Draft for cross-document review — not approved for implementation |
+| Version | 2.2 |
+| Status | Approved for Frontend Architecture |
 | Last Updated | 2026-11-11 |
 | Primary Related Document | `docs/BUSINESS_RULES_AND_DATA_MODEL.md` |
 | UI/UX Reference | `docs/UI_UX_SPECIFICATION.md` |
-| Next Step | Approve or defer D-01 through D-08, then complete cross-document review. |
+| Next Step | Begin Frontend Architecture using the approved MVP baseline. |
 
 ## 15. Change Log
 
 | Version | Date | Changes |
 |---|---|---|
-| 2.1 | 2026-11-11 | Added supplier Purchase Invoice capture as the only Stock IN source, invoice-line purchase prices, supplier-specific latest price history, current selling price, package descriptions, many-to-many product relationships, integer toman and stock units, deletion constraints, and decision gates. Aligned MVP exclusions and acceptance criteria with Business Rules. |
+| 2.2 | 2026-11-11 | Applied approved decisions D-01 through D-09. Finalized MWAC inventory valuation, cost rounding, minimum-stock default, zero selling-price behavior, opening-stock cost, invoice-line cost basis, Stock OUT reasons, immutable posted records, and Sales Analytics profit metrics. Removed decision gates and aligned acceptance criteria. |
 | 2.0 | 2026-11-02 | Established the general-purpose, frontend-focused inventory and sales analytics product scope. |
