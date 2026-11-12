@@ -57,11 +57,31 @@ See the Business Rules document for the full definitions, formulas, validations,
 | [Product Requirements Document](docs/PRD.md) | Product scope, functional requirements, non-functional requirements, and MVP acceptance criteria. |
 | [Business Rules & Data Model](docs/BUSINESS_RULES_AND_DATA_MODEL.md) | Approved business rules, data relationships, calculations, validation, and domain types. |
 | [UI/UX Specification](docs/UI_UX_SPECIFICATION.md) | Navigation, page requirements, forms, interaction behavior, and UI acceptance criteria. |
+| [Frontend Architecture](docs/FRONTEND_ARCHITECTURE.md) | Approved stack, routing, state, persistence, folder structure, and testing strategy. |
+| [Project Setup](docs/PROJECT_SETUP.md) | Phase 5 setup decisions, commands, folder structure, and verification evidence. |
 | [Approved Product Decisions](docs/OPEN_DECISIONS_REVIEW.md) | Record of product-owner decisions D-01 through D-09. |
 
-## Technology Direction
+## Approved Technology Stack
 
-The current direction is Next.js and TypeScript. Final choices for routing, state management, forms, validation, styling, charts, and folder structure belong to the Frontend Architecture phase. Do not treat a library as selected until that phase confirms it.
+| Concern | Choice |
+|---|---|
+| Framework | Next.js App Router |
+| Language | TypeScript with `strict: true` |
+| Styling | Tailwind CSS v4 |
+| UI primitives | shadcn/ui with Radix UI, configured for RTL |
+| Icons | `lucide-react` |
+| Client state | Zustand, provider-scoped |
+| Forms | React Hook Form |
+| Validation | Zod 4 with `@hookform/resolvers` |
+| Charts | Recharts |
+| Theme | `next-themes` with CSS variables |
+| Unit and component tests | Vitest with React Testing Library |
+| End-to-end tests | Playwright |
+| Package manager | npm |
+
+The MVP has no backend, server database, authentication, remote-data caching layer, or multi-language framework. Editable inventory data will use one versioned LocalStorage snapshot.
+
+Phase 5 also self-hosts the Vazirmatn font through `@fontsource-variable/vazirmatn` and uses `@daypicker/react` with `@daypicker/persian` for Persian calendar input. Exact versions and setup evidence are recorded in [Project Setup](docs/PROJECT_SETUP.md).
 
 ## Project Roadmap
 
@@ -71,8 +91,8 @@ The current direction is Next.js and TypeScript. Final choices for routing, stat
 | Phase 1 | Product Requirements & Scope | Completed |
 | Phase 2 | Business Rules & Data Model | Completed |
 | Phase 3 | UI/UX Specification | Completed |
-| Phase 4 | Frontend Architecture | Next |
-| Phase 5 | Project Setup | Pending |
+| Phase 4 | Frontend Architecture | Completed |
+| Phase 5 | Project Setup | Complete — Ready for Review |
 | Phase 6 | Core Inventory Workflows | Pending |
 | Phase 7 | Dashboard & Sales Analytics | Pending |
 | Phase 8 | Testing & Optimization | Pending |
@@ -80,13 +100,41 @@ The current direction is Next.js and TypeScript. Final choices for routing, stat
 
 ## Getting Started
 
-The application implementation has not started. After the Frontend Architecture and Project Setup phases, installation and run instructions will be added here.
+### Prerequisites
+
+- Node.js 20.9 or newer
+- npm
+
+### Install and run
+
+```bash
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+### Quality checks
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run test:e2e
+```
+
+`npm run test:e2e` requires the Playwright Chromium browser. Install it once with:
+
+```bash
+npx playwright install chromium
+```
 
 ## Project Status
 
-**Current status:** Product documentation approved for Frontend Architecture.
+**Current status:** Phase 5 — Project Setup complete, ready for review.
 
-The next phase is Frontend Architecture. Frontend implementation starts after the architecture decisions are complete.
+The application shell is scaffolded with Persian language, RTL direction, the approved dependencies, and the layered folder structure. ESLint, TypeScript, 20 unit/component tests, the production build, and the Playwright smoke test pass. Production dependencies report no audit vulnerabilities. Product features and dashboard pages begin in Phase 6 after setup review and approval.
 
 ## License
 
