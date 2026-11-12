@@ -172,7 +172,7 @@ src/
 
 ## 7. Verification Log
 
-All checks were run on 2026-11-12 against the final Phase 5 tree.
+Final verification was rerun on 2026-11-12 against the committed Phase 5 tree. A full-page screenshot of the production build was captured during browser inspection and stored outside the repository to avoid adding a binary artifact.
 
 | Check | Command | Result |
 |---|---|---|
@@ -191,7 +191,7 @@ All checks were run on 2026-11-12 against the final Phase 5 tree.
 
 `npm audit` reports 12 advisories in development-only tooling: 2 low and 10 moderate. They are inherited from the latest `shadcn` CLI (`deepmerge`, `ts-morph`, and `minimatch`) and `typescript-eslint` (`minimatch`). They are not included in the production dependency graph or the client bundle.
 
-The installed `shadcn` and `typescript-eslint` versions are already the latest releases. npm's proposed fix is a breaking downgrade of `shadcn` to `1.0.0`, which is not acceptable for this setup. No safe non-breaking fix is currently available; the advisories will be revisited when upstream packages update their dependencies.
+The installed `shadcn` and `typescript-eslint` versions are already the latest releases. npm's proposed fix is a breaking downgrade of `shadcn` to `1.0.0`, which is not acceptable for this setup. A final `npm audit fix --dry-run` reported `up to date` and proposed no non-breaking changes. `npm audit fix --force` was not used. No safe non-breaking fix is currently available; the advisories will be revisited when upstream packages update their dependencies.
 
 ## 8. Boundaries for the Next Phase
 
